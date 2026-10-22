@@ -1,9 +1,9 @@
 {% extends 'reservations/base.html' %}
 {% block title %}Buat Reservasi{% endblock %}
-{% block content %}
-<section class="page-intro"><div><h1>Mulai reservasi Anda</h1><p>Pilih kamar, tentukan tanggal, dan biarkan kami menyiapkan pengalaman yang berkesan.</p></div><span class="step-label">01 <i></i> 03</span></section>
+{% block reservation_body %}
+<section class="page-intro"><div><p class="pub-eyebrow">01 / Detail penginapan</p><h1>Mulai reservasi Anda</h1><p>Pilih kamar, tentukan tanggal, dan biarkan kami menyiapkan pengalaman yang berkesan.</p></div><span class="step-label">01 — 03</span></section>
 <div class="reservation-layout">
-    <form class="form-card" method="post">
+    <form class="form-card card" method="post">
         {% csrf_token %}
         <div class="form-heading"><span class="form-icon">01</span><div><h2>Detail penginapan</h2><p>Isi informasi utama reservasi Anda.</p></div></div>
         {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
@@ -14,8 +14,8 @@
             <label class="field"><span>Jumlah tamu</span>{{ form.jumlah_tamu }}</label>
             <label class="field"><span>Kode voucher <em>Opsional</em></span>{{ form.voucher }}</label>
         </div>
-        <div class="form-footer"><a class="text-link" href="{% url 'home' %}">← Pilih kamar lain</a><button class="button btn btn-danger button-dark" type="submit">Lanjutkan Reservasi <span>→</span></button></div>
+        <div class="form-footer"><a class="text-link" href="{% url 'room_list' %}">← Pilih kamar lain</a><button class="btn btn--primary" type="submit">Lanjutkan Reservasi <span class="btn__icon" aria-hidden="true">→</span></button></div>
     </form>
-    <aside class="side-card"><p class="eyebrow">Mengapa Nocturn Haven?</p><h2>Ruang yang terasa seperti rumah.</h2><p>Setiap reservasi kami siapkan dengan detail kecil yang membuat perjalanan Anda terasa ringan.</p><ul><li>Harga transparan tanpa biaya tersembunyi</li><li>Konfirmasi reservasi yang cepat</li><li>Dukungan tamu selama 24 jam</li></ul><div class="side-note"><strong>Butuh bantuan?</strong><span>hello@nocturnhaven.test</span></div></aside>
+    <aside class="side-card card"><p class="pub-eyebrow">Mengapa Nocturn Haven?</p><h2>Ruang yang terasa seperti rumah.</h2><p>Setiap reservasi kami siapkan dengan detail kecil yang membuat perjalanan Anda terasa ringan.</p><ul><li>Harga transparan tanpa biaya tersembunyi</li><li>Konfirmasi reservasi yang cepat</li><li>Dukungan tamu selama 24 jam</li></ul><div class="side-note"><strong>Butuh bantuan?</strong><span>hello@nocturnhaven.test</span></div></aside>
 </div>
 {% endblock %}

@@ -1,0 +1,8 @@
+{% comment %}
+Star rating renderer.
+Usage: {% include 'public/_stars.html' with value=review.rating %}
+Optional: large=True for the bigger hero variant.
+`value|add:0` coerces floats/strings ("5") to an int so the comparison below
+never silently falls back to "no stars".
+{% endcomment %}
+<span class="stars{% if large %} stars--lg{% endif %}" role="img" aria-label="Rating {{ value }} dari 5">{% for i in "12345" %}{% if forloop.counter <= value|add:0 %}<span class="is-filled" aria-hidden="true">★</span>{% else %}<span aria-hidden="true">★</span>{% endif %}{% endfor %}</span>

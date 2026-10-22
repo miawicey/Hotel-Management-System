@@ -1,27 +1,34 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Operasional | Nocturn Haven</title>
-    <link rel="stylesheet" href="{% static 'dashboard/css/home.css' %}">
-</head>
-<body>
-    <header class="site-header"><a class="brand" href="{% url 'home' %}"><img class="brand-logo" src="{% static 'dashboard/images/logo.svg' %}" alt="Nocturn Haven"></a><nav class="main-nav"><a class="text-link" href="{% url 'reception' %}">Meja Resepsionis</a><a class="text-link" href="{% url 'admin:index' %}">Kembali ke Admin</a></nav></header>
-    <main class="section">
-        <p class="eyebrow">Ringkasan operasional</p>
+{% extends 'public/base.html' %}
+{% block title %}Laporan Operasional{% endblock %}
+{% block meta_description %}Ringkasan operasional hotel untuk staff dan admin.{% endblock %}
+
+{% block body_class %}report-page{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="pub-shell">
+        <p class="pub-eyebrow">Ringkasan operasional</p>
         <h1>Laporan Dasar</h1>
-        <div class="room-grid">
-            <article class="room-card"><div class="room-body"><h3>Total Booking</h3><p>{{ total_bookings }}</p></div></article>
-            <article class="room-card"><div class="room-body"><h3>Booking Confirmed</h3><p>{{ confirmed_bookings }}</p></div></article>
-            <article class="room-card"><div class="room-body"><h3>Checked-In</h3><p>{{ checked_in_bookings }}</p></div></article>
-            <article class="room-card"><div class="room-body"><h3>Checked-Out</h3><p>{{ checked_out_bookings }}</p></div></article>
-            <article class="room-card"><div class="room-body"><h3>Pembayaran Terverifikasi</h3><p>{{ verified_payments }}</p></div></article>
-            <article class="room-card"><div class="room-body"><h3>Kamar Clean</h3><p>{{ clean_rooms }}</p></div></article>
-            <article class="room-card"><div class="room-body"><h3>Kamar Dirty</h3><p>{{ dirty_rooms }}</p></div></article>
-            <article class="room-card"><div class="room-body"><h3>Kamar Maintenance</h3><p>{{ maintenance_rooms }}</p></div></article>
+        <p>Angka kunci pemesanan, pembayaran, dan kesiapan kamar — diperbarui langsung dari basis data hotel.</p>
+        <div class="banner-actions" style="margin-top:26px">
+            <a class="btn btn--gold" href="{% url 'reception' %}">Meja Resepsionis</a>
+            <a class="btn btn--pale" href="{% url 'admin:index' %}">Kembali ke Admin <span class="btn__icon" aria-hidden="true">→</span></a>
         </div>
-    </main>
-</body>
-</html>
+    </div>
+</section>
+
+<div class="page-body">
+    <div class="pub-shell">
+        <div class="stat-grid" data-reveal-group>
+            <article class="stat-card card" data-reveal><small>Total Booking</small><strong class="num">{{ total_bookings }}</strong></article>
+            <article class="stat-card card" data-reveal><small>Booking Confirmed</small><strong class="num">{{ confirmed_bookings }}</strong></article>
+            <article class="stat-card card" data-reveal><small>Checked-In</small><strong class="num">{{ checked_in_bookings }}</strong></article>
+            <article class="stat-card card" data-reveal><small>Checked-Out</small><strong class="num">{{ checked_out_bookings }}</strong></article>
+            <article class="stat-card card" data-reveal><small>Pembayaran Terverifikasi</small><strong class="num">{{ verified_payments }}</strong></article>
+            <article class="stat-card card" data-reveal><small>Kamar Clean</small><strong class="num">{{ clean_rooms }}</strong></article>
+            <article class="stat-card card" data-reveal><small>Kamar Dirty</small><strong class="num">{{ dirty_rooms }}</strong></article>
+            <article class="stat-card card" data-reveal><small>Kamar Maintenance</small><strong class="num">{{ maintenance_rooms }}</strong></article>
+        </div>
+    </div>
+</div>
+{% endblock %}

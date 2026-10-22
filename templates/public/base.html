@@ -1,0 +1,137 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Nocturn Haven{% endblock %} | Nocturn Haven Hotel &amp; Suites</title>
+    <meta name="description" content="{% block meta_description %}Nocturn Haven — hotel &amp; suites dengan kamar tenang, layanan hangat, dan reservasi langsung tanpa biaya tersembunyi.{% endblock %}">
+    <meta name="theme-color" content="#2c070d">
+    <link rel="icon" type="image/svg+xml" href="{% static 'dashboard/images/logo.svg' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {% comment %}
+    Webfonts are progressive enhancement: loaded asynchronously so an
+    unreachable font host can never block rendering or the deferred motion
+    scripts (which would otherwise wait on the pending stylesheet).
+    {% endcomment %}
+    <link rel="stylesheet" media="print" onload="this.media='all'; this.onload=null" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"></noscript>
+    <link rel="stylesheet" href="{% static 'css/public-site.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="pub-body {% block body_class %}{% endblock %}">
+    <a class="skip-link" href="#main-content">Lewati ke konten utama</a>
+    <div class="pub-grain" aria-hidden="true"></div>
+
+    <header class="site-header">
+        <div class="site-header-inner">
+            <a class="brand" href="{% url 'home' %}" aria-label="Nocturn Haven — beranda">
+                <img class="brand-logo" src="{% static 'dashboard/images/logo.svg' %}" alt="">
+                <span class="brand-copy"><strong>NOCTURN</strong><small>Haven</small></span>
+            </a>
+
+            <nav class="main-nav" aria-label="Navigasi utama">
+                <a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a>
+                <a href="{% url 'room_list' %}"{% if request.resolver_match.url_name == 'room_list' or request.resolver_match.url_name == 'room_detail' or request.resolver_match.url_name == 'booking_create' %} aria-current="page"{% endif %}>Room &amp; Suites</a>
+                <a href="{% url 'home' %}#facilities">Facilities</a>
+                <a href="{% url 'home' %}#offers">Offers</a>
+                <a href="{% url 'review_list' %}"{% if request.resolver_match.url_name == 'review_list' %} aria-current="page"{% endif %}>Ulasan Tamu</a>
+                <a href="{% url 'guest_dashboard' %}">Portal Tamu</a>
+                <a href="{% url 'home' %}#about">About Us</a>
+            </nav>
+
+            <div class="header-actions">
+                {% if user.is_authenticated %}
+                <span class="header-hello">Halo, <strong>{% firstof user.first_name user.username %}</strong></span>
+                <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout-inline" type="submit">Keluar</button></form>
+                <a class="avatar-chip" href="{% url 'guest_dashboard' %}" aria-label="Buka portal tamu" title="Portal Tamu">
+                    <span class="avatar-dot" aria-hidden="true">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
+                    <span>Portal Tamu</span>
+                </a>
+                {% else %}
+                <a class="avatar-chip avatar-chip--guest" href="{% url 'login' %}" aria-label="Masuk ke akun tamu" title="Masuk">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+                    <span>Masuk</span>
+                </a>
+                {% endif %}
+                <a class="btn btn--primary" href="{% url 'booking_create' %}">Pesan Sekarang</a>
+                <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" data-nav-toggle>
+                    <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+                    <span class="visually-hidden">Buka menu navigasi</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="mobile-nav" id="mobile-nav" data-mobile-nav aria-label="Navigasi seluler">
+        <a href="{% url 'home' %}">Home <span>01</span></a>
+        <a href="{% url 'room_list' %}">Room &amp; Suites <span>02</span></a>
+        <a href="{% url 'home' %}#facilities">Facilities <span>03</span></a>
+        <a href="{% url 'home' %}#offers">Offers <span>04</span></a>
+        <a href="{% url 'review_list' %}">Ulasan Tamu <span>05</span></a>
+        <a href="{% url 'guest_dashboard' %}">Portal Tamu <span>06</span></a>
+        <a href="{% url 'home' %}#about">About Us <span>07</span></a>
+        <div class="mobile-nav-actions">
+            {% if user.is_authenticated %}
+            <a class="btn btn--gold" href="{% url 'booking_create' %}">Pesan Sekarang</a>
+            <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn--pale btn--block" type="submit">Keluar</button></form>
+            {% else %}
+            <a class="btn btn--gold" href="{% url 'booking_create' %}">Pesan Sekarang</a>
+            <a class="btn btn--pale" href="{% url 'login' %}">Masuk ke Akun Tamu</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main id="main-content" tabindex="-1">
+        {% if messages %}
+        <div class="pub-shell messages-shell">
+            <div class="messages" role="status" aria-live="polite">
+                {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="pub-shell">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <span class="brand-copy"><strong>NOCTURN</strong><small>Haven</small></span>
+                    <p>Kenyamanan tenang dan kemewahan arsitektur hotel modern, dirancang untuk istirahat yang sungguh-sungguh pulih.</p>
+                </div>
+                <div class="footer-col">
+                    <small>Lokasi</small>
+                    <p>Jl. Sibukir Sgma No. 67, Kawasan Sigra</p>
+                    <p>Layanan antar-jemput bandara tersedia.</p>
+                </div>
+                <div class="footer-col">
+                    <small>Reservasi</small>
+                    <p>Telepon: 626767</p>
+                    <p><a href="mailto:hello@nocturnhaven.test">hello@nocturnhaven.test</a></p>
+                </div>
+                <div class="footer-col">
+                    <small>Check-in</small>
+                    <p>Check-in 14:00 · Check-out 12:00</p>
+                    <p>Gratis pembatalan hingga 48 jam sebelum kedatangan.</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>© {% now "Y" %} Nocturn Haven · Hospitality Management</span>
+                <span class="footer-legal">
+                    <a href="{% url 'home' %}#about">Kebijakan Privasi</a>
+                    <a href="{% url 'home' %}#about">Ketentuan Layanan</a>
+                    <a href="{% url 'review_list' %}">Ulasan Tamu</a>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/vendor/lenis.min.js' %}" defer></script>
+    <script src="{% static 'js/site.js' %}" defer></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

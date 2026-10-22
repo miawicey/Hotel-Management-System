@@ -1,18 +1,27 @@
 import json
 from functools import wraps
 
+from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt 
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import CreateView
 
-from .forms import AccountLoginForm, AccountRegisterForm
+from .forms import (
+    AccountLoginForm,
+    AccountRegisterForm,
+    GuestProfileForm,
+    NocturnPasswordChangeForm,
+)
 from .models import GuestProfile
 
 ROLES = [c[0] for c in GuestProfile.ROLE_CHOICES]    
@@ -214,6 +223,11 @@ class AccountLoginView(LoginView):
     redirect_authenticated_user = True
 
     def get_success_url(self):
+        # Honor an explicit ?next= destination (for example a checkout link)
+        # before falling back to the role-based landing page.
+        next_url = self.get_redirect_url()
+        if next_url:
+            return next_url
         user = self.request.user
         if user.is_staff or _role(user) == 'ADMIN':
             return reverse_lazy('admin:index')
@@ -233,4 +247,61 @@ class RegisterView(CreateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         login(self.request, self.object)
+        return response
+
+
+# ---------- guest profile / account preferences ----------
+class GuestProfileView(LoginRequiredMixin, View):
+    """View and update the guest's identity, contact details and preferences."""
+
+    template_name = 'accounts/profile.html'
+
+    def _context(self, request, form):
+        profile = _profile(request.user)
+        bookings = request.user.bookings.all()
+        return {
+            'form': form,
+            'profile': profile,
+            'active_section': 'profile',
+            'booking_count': bookings.count(),
+            'upcoming_count': bookings.filter(
+                status_pesanan__in=('PENDING_PAYMENT', 'CONFIRMED'),
+            ).count(),
+            'completed_count': bookings.filter(status_pesanan='CHECKED_OUT').count(),
+            'member_since': request.user.date_joined,
+            'last_login': request.user.last_login,
+        }
+
+    def get(self, request, *args, **kwargs):
+        profile = _profile(request.user)
+        form = GuestProfileForm(instance=profile, user=request.user)
+        return render(request, self.template_name, self._context(request, form))
+
+    def post(self, request, *args, **kwargs):
+        profile = _profile(request.user)
+        form = GuestProfileForm(request.POST, instance=profile, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profil Anda berhasil diperbarui.')
+            return redirect('profile')
+        messages.error(request, 'Periksa kembali data yang ditandai di bawah.')
+        return render(request, self.template_name, self._context(request, form))
+
+
+class AccountPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    template_name = 'accounts/password_change.html'
+    form_class = NocturnPasswordChangeForm
+    success_url = reverse_lazy('profile')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'profile': _profile(self.request.user),
+            'active_section': 'profile',
+        })
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Kata sandi berhasil diperbarui.')
         return response

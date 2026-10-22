@@ -1,202 +1,258 @@
 import json
+import logging
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
 from django.views import View
-from django.views.generic import TemplateView
 
+from accounts.models import GuestProfile
 from reservations.models import Booking
 
+from .forms import ServiceOrderForm
+from .menu import available_menu, build_menu_groups, menu_stats, recommended_items
 from .models import ServiceOrder
 from .services import (
-    FOOD_MENU,
-    SERVICE_LABELS,
-    call_gemini,
-    extract_booking_ref,
-    food_cards,
-    format_items,
-    parse_food_items,
+    CONCIERGE_NAME,
+    check_rate_limit,
+    clear_chat_history,
+    generate_concierge_reply,
+    load_chat_history,
+    remember_exchange,
 )
 
-WELCOME_TEXT = (
-    'Halo! Selamat datang di Hotel Nocturn Haven\n'
-    'Ada yang bisa saya bantu? Silakan pilih layanan berikut:'
-)
-WELCOME_OPTIONS = [
-    SERVICE_LABELS['FOOD'],
-    SERVICE_LABELS['AMENITIES'],
-    SERVICE_LABELS['EXTRA_BED'],
-    SERVICE_LABELS['LAUNDRY'],
-]
-RECEPTION_LABEL = SERVICE_LABELS['RECEPTION']
+logger = logging.getLogger(__name__)
+
+RECENT_ORDER_LIMIT = 8
 
 
-class RoomServiceChatView(LoginRequiredMixin, TemplateView):
-    template_name = 'chatbot/room_service.html'
+def _guest_profile(user):
+    profile, _created = GuestProfile.objects.get_or_create(
+        user=user,
+        defaults={'role': 'ADMIN' if user.is_superuser else 'GUEST'},
+    )
+    return profile
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        try:
-            vip = 'Gold VIP Tier' if user.bookings.exists() else 'Tamu Terhormat'
-        except Exception:
-            vip = 'Tamu Terhormat'
-        context.update({
-            'welcome_text': WELCOME_TEXT,
-            'welcome_options': WELCOME_OPTIONS,
-            'reception_label': RECEPTION_LABEL,
-            'food_menu': FOOD_MENU,
-            'vip_label': vip,
-            'display_name': user.first_name or user.username,
+
+def _order_queryset(user):
+    queryset = (
+        ServiceOrder.objects.select_related(
+            'booking', 'booking__room', 'booking__room__room_type',
+        )
+        .prefetch_related('items__menu_item', 'status_logs')
+        .order_by('-created_at')
+    )
+    if not user.is_staff:
+        queryset = queryset.filter(user=user)
+    return queryset
+
+
+def _tracked_orders(user):
+    """Active orders first, then the most recent finished ones."""
+    queryset = _order_queryset(user)
+    active = list(queryset.filter(status__in=ServiceOrder.ACTIVE_STATUSES)[:4])
+    active_ids = {order.pk for order in active}
+    recent = list(queryset.exclude(pk__in=active_ids)[:RECENT_ORDER_LIMIT - len(active)])
+    return active + recent
+
+
+def _order_status_payload(order, request):
+    return {
+        'id': order.pk,
+        'code': order.order_code,
+        'status': order.status,
+        'status_label': order.get_status_display(),
+        'status_tone': order.status_tone,
+        'fulfillment': order.fulfillment,
+        'fulfillment_label': order.get_fulfillment_display(),
+        'active': order.is_active,
+        'progress': order.progress_percent,
+        'updated_at': timezone.localtime(order.updated_at).isoformat(),
+        'html': render_to_string(
+            'chatbot/_order_tracking.html',
+            {'order': order},
+            request=request,
+        ),
+    }
+
+
+class RoomServicePortalView(LoginRequiredMixin, View):
+    """Single room-service surface: menu, ordering and live tracking."""
+
+    template_name = 'chatbot/room_service_portal.html'
+
+    def _context(self, request, form):
+        menu_items = form.menu_items
+        eligible_bookings = list(form.eligible_bookings)
+        primary_stay = next(
+            (b for b in eligible_bookings if b.status_pesanan == 'CHECKED_IN'),
+            eligible_bookings[0] if eligible_bookings else None,
+        )
+        orders = _tracked_orders(request.user)
+        return {
+            'active_section': 'room_service',
+            'profile': _guest_profile(request.user),
+            'form': form,
+            'menu_items': menu_items,
+            'menu_groups': build_menu_groups(menu_items),
+            'recommended_items': recommended_items(menu_items),
+            'menu_stats': menu_stats(menu_items),
+            'orders': orders,
+            'active_order_count': sum(1 for order in orders if order.is_active),
+            'eligible_stay_count': len(eligible_bookings),
+            'primary_stay': primary_stay,
+            'today': timezone.localdate(),
+            'chat_history': load_chat_history(request),
+            'chat_configured': _gemini_configured(),
+            'concierge_name': CONCIERGE_NAME,
+            'tracking_endpoint': '/room-service/api/orders/status/',
+        }
+
+    def get(self, request, *args, **kwargs):
+        form = ServiceOrderForm(user=request.user)
+        return render(request, self.template_name, self._context(request, form))
+
+    def post(self, request, *args, **kwargs):
+        form = ServiceOrderForm(request.POST, user=request.user)
+        if form.is_valid():
+            try:
+                order = form.save()
+            except ValidationError as exc:
+                form.add_error(None, exc)
+                messages.error(request, 'Pesanan belum dapat diproses.')
+                return render(
+                    request, self.template_name, self._context(request, form),
+                )
+            detail_url = reverse(
+                'room_service_order_detail', kwargs={'pk': order.pk},
+            )
+            return redirect(f'{detail_url}?placed=1')
+        messages.error(request, 'Periksa kembali pesanan Anda.')
+        return render(request, self.template_name, self._context(request, form))
+
+
+def _gemini_configured():
+    from django.conf import settings
+    return bool(str(getattr(settings, 'GEMINI_API_KEY', '') or '').strip())
+
+
+class ServiceOrderDetailView(LoginRequiredMixin, View):
+    """Track one order with a live, auto-refreshing timeline."""
+
+    template_name = 'chatbot/order_detail.html'
+
+    def get(self, request, pk, *args, **kwargs):
+        order = get_object_or_404(_order_queryset(request.user), pk=pk)
+        return render(request, self.template_name, {
+            'active_section': 'room_service',
+            'profile': _guest_profile(request.user),
+            'order': order,
+            'just_placed': request.GET.get('placed') == '1',
+            'concierge_name': CONCIERGE_NAME,
+            'tracking_endpoint': f'/room-service/api/orders/{order.pk}/status/',
         })
-        return context
 
 
-class ChatApiView(LoginRequiredMixin, View):
-    """JSON endpoint: {message, history:[{from,text}]} -> {reply, options, stage}."""
+class ConciergeChatView(LoginRequiredMixin, View):
+    """JSON endpoint for the floating concierge panel."""
+
+    raise_exception = True
 
     def post(self, request, *args, **kwargs):
         try:
             payload = json.loads(request.body.decode('utf-8') or '{}')
-        except (ValueError, UnicodeDecodeError):
-            return JsonResponse({'reply': 'Format pesan tidak valid.'}, status=400)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return JsonResponse(
+                {'ok': False, 'error': 'Format permintaan tidak valid.'},
+                status=400,
+            )
+        if not isinstance(payload, dict):
+            return JsonResponse(
+                {'ok': False, 'error': 'Format permintaan tidak valid.'},
+                status=400,
+            )
+
+        if payload.get('reset') is True:
+            clear_chat_history(request)
+            return JsonResponse({'ok': True, 'reset': True})
+
         message = str(payload.get('message', '')).strip()
-        history = payload.get('history', []) if isinstance(payload.get('history'), list) else []
         if not message:
-            return JsonResponse({'reply': 'Silakan ketik pesan atau pilih layanan.'}, status=400)
+            return JsonResponse(
+                {'ok': False, 'error': 'Tuliskan pertanyaan Anda terlebih dahulu.'},
+                status=400,
+            )
+        if len(message) > 1000:
+            return JsonResponse(
+                {'ok': False, 'error': 'Pesan terlalu panjang (maksimal 1.000 karakter).'},
+                status=400,
+            )
 
-        # 1) Structured flow has priority (reservation-safe).
-        rule_reply = self._handle_flow(request, message)
-        if rule_reply is not None:
-            return JsonResponse(rule_reply)
+        allowed, retry_after = check_rate_limit(request)
+        if not allowed:
+            return JsonResponse(
+                {
+                    'ok': False,
+                    'error': (
+                        'Anda mengirim pesan terlalu cepat. '
+                        f'Coba lagi dalam {retry_after} detik.'
+                    ),
+                    'retry_after': retry_after,
+                },
+                status=429,
+            )
 
-        # 2) Quick intent shortcuts before spending a Gemini call.
-        lowered = message.lower()
-        if lowered in ('ya', 'iya', 'benar', 'betul', 'oke', 'ok'):
-            pending = request.session.get('chat_pending_booking')
-            if pending:
-                return JsonResponse(self._confirm_order(request))
-        if any(k in lowered for k in ('hai', 'halo', 'hello', 'pagi', 'siang', 'sore', 'malam')) and len(lowered) < 20:
-            return JsonResponse({
-                'reply': 'Halo! Senang bisa membantu. Silakan pilih layanan berikut:',
-                'options': WELCOME_OPTIONS,
-                'show_reception': True,
-            })
-
-        # 3) Gemini fallback for open-ended questions.
-        reply = call_gemini(message, history)
-        return JsonResponse({'reply': reply})
-
-    # -- state machine -------------------------------------------------
-    def _handle_flow(self, request, message):
-        session = request.session
-        stage = session.get('chat_stage', 'idle')
-        lowered = message.lower()
-
-        # Entry points (work from any stage to restart cleanly).
-        if lowered == SERVICE_LABELS['FOOD'].lower() or 'makanan' in lowered or 'minuman' in lowered:
-            session.update({'chat_stage': 'food_menu', 'chat_service': 'FOOD'})
-            return {'reply': 'Silakan Pilih Menu:', 'options': FOOD_MENU, 'cards': food_cards()}
-        if 'amenit' in lowered or lowered == SERVICE_LABELS['AMENITIES'].lower():
-            session.update({'chat_stage': 'await_booking', 'chat_service': 'AMENITIES', 'chat_items': {}})
-            return {'reply': 'Baik, Anda memilih Request Amenities. Sebutkan kebutuhan Anda (misal: handuk tambahan, perlengkapan mandi).'}
-        if 'extra bed' in lowered:
-            session.update({'chat_stage': 'await_booking', 'chat_service': 'EXTRA_BED', 'chat_items': {'Extra Bed': 1}})
-            return {'reply': 'Baik, Anda memilih Request Extra Bed.\nSebelum melanjutkan, silakan masukkan kode reservasi Anda.'}
-        if 'laundry' in lowered:
-            session.update({'chat_stage': 'await_booking', 'chat_service': 'LAUNDRY'})
-            return {'reply': 'Baik, Anda memilih Laundry. Sebutkan jumlah dan jenis pakaian (misal: 3 kemeja, 2 celana).\nSetelah itu masukkan kode reservasi Anda.'}
-        if 'resepsionis' in lowered:
-            session.update({'chat_stage': 'idle', 'chat_service': 'RECEPTION'})
-            return {'reply': 'Baik, saya hubungkan ke resepsionis. Tim kami akan segera membalas di sini. Sambil menunggu, boleh ceritakan kebutuhan Anda?'}
-
-        if stage == 'food_menu':
-            items = parse_food_items(message)
-            # A bare menu tap ("Nasi Goreng") counts as x1; "Lainnya" asks for detail.
-            if not items:
-                return {'reply': 'Silakan Pilih Menu:', 'options': FOOD_MENU, 'cards': food_cards()}
-            if set(items) == {'Lainnya'}:
-                session['chat_stage'] = 'food_menu'
-                return {'reply': 'Silakan ketik nama makanan/minuman yang Anda inginkan (contoh: Soto Ayam 2, Es Teh 3).'}
-            session.update({'chat_stage': 'await_booking', 'chat_service': 'FOOD', 'chat_items': items})
-            return {
-                'reply': f"Pesanan Anda:\n\n{format_items(items)}\n\nSebelum melanjutkan, silakan masukkan kode reservasi Anda.",
-            }
-
-        if stage == 'await_booking':
-            # Allow laundry/amenities free-text detail before the code arrives.
-            ref = extract_booking_ref(message)
-            if ref is None:
-                service = session.get('chat_service', 'FOOD')
-                if service in ('LAUNDRY', 'AMENITIES') and len(message) >= 2:
-                    session['chat_items'] = {message[:120]: 1}
-                    return {'reply': 'Baik, catat. Sekarang silakan masukkan kode reservasi Anda (contoh: GH-2024-4091 atau cukup angka ID booking Anda).'}
-                return {'reply': 'Kode reservasi tidak terbaca. Silakan masukkan kode reservasi Anda (contoh: GH-2024-4091).'}
-            booking = self._find_booking(request, ref)
-            if booking is None:
-                return {'reply': 'Maaf, data reservasi tidak ditemukan untuk akun Anda. Periksa kembali kode reservasi Anda.'}
-            if booking.status_pesanan == 'CANCELLED':
-                session.update({'chat_stage': 'idle', 'chat_pending_booking': None})
-                return {'reply': 'Maaf, reservasi tersebut sudah dibatalkan sehingga tidak bisa dipakai memesan layanan. Silakan buat reservasi baru di halaman Pemesanan Saya.', 'options': WELCOME_OPTIONS, 'show_reception': True}
-            session['chat_pending_booking'] = booking.pk
-            session['chat_stage'] = 'await_confirm'
-            room = booking.room
-            jadwal = f'{booking.tanggal_check_in:%d %b %Y} - {booking.tanggal_check_out:%d %b %Y}'
-            return {
-                'reply': (
-                    'Data reservasi ditemukan:\n\n'
-                    f'Nama: {booking.user.first_name or booking.user.username}\n'
-                    f'Tipe Kamar: {room.room_type.name}\n'
-                    f'No. Kamar: {room.number}\n'
-                    f'Jadwal Menginap: {jadwal}\n'
-                    f'Status: {booking.get_status_pesanan_display()}'
-                ),
-                'follow_up': 'Apakah data reservasi anda sudah benar?',
-                'options': ['Ya', 'Tidak'],
-            }
-
-        if stage == 'await_confirm':
-            if lowered in ('ya', 'iya', 'benar', 'betul', 'oke', 'ok', 'y'):
-                return self._confirm_order(request)
-            if lowered in ('tidak', 'bukan', 'salah', 'batal'):
-                session.update({'chat_stage': 'idle', 'chat_pending_booking': None})
-                return {'reply': 'Baik, pesanan dibatalkan. Silakan pilih layanan lain:', 'options': WELCOME_OPTIONS, 'show_reception': True}
-            return {'reply': 'Apakah data reservasi anda sudah benar?', 'options': ['Ya', 'Tidak']}
-
-        return None
-
-    def _find_booking(self, request, ref):
-        qs = Booking.objects.filter(user=request.user).select_related('room', 'room__room_type')
-        booking = qs.filter(pk=ref).first()
-        if booking is not None:
-            return booking
-        # Allow codes like "GH-2024-4091" to match PK 4091 by suffix.
-        ref_str = str(ref)
-        for candidate in qs.order_by('-created_at')[:20]:
-            if str(candidate.pk).endswith(ref_str[-4:]):
-                return candidate
-        # Single-booking accounts: be lenient so the demo flow works.
-        if qs.count() == 1:
-            return qs.first()
-        return None
-
-    def _confirm_order(self, request):
-        session = request.session
-        booking_id = session.get('chat_pending_booking')
-        service = session.get('chat_service', 'FOOD')
-        items = session.get('chat_items', {}) or {}
-        try:
-            booking = Booking.objects.filter(user=request.user, pk=booking_id).select_related('room').first()
-        except (TypeError, ValueError):
-            booking = None
-        if not booking:
-            session.update({'chat_stage': 'idle', 'chat_pending_booking': None})
-            return {'reply': 'Sesi reservasi kedaluwarsa. Silakan ulangi dari awal.', 'options': WELCOME_OPTIONS}
-        detail = format_items(items) if isinstance(items, dict) else str(items)
-        if service in ('AMENITIES', 'LAUNDRY') and not detail:
-            detail = '(menunggu detail dari tamu via resepsionis)'
-        ServiceOrder.objects.create(
-            user=request.user, booking=booking, service_type=service, detail=detail, status='CONFIRMED',
+        history = load_chat_history(request)
+        reply = generate_concierge_reply(
+            message=message,
+            user=request.user,
+            history=history,
         )
-        session.update({'chat_stage': 'idle', 'chat_pending_booking': None, 'chat_items': {}, 'chat_service': ''})
-        return {'reply': 'Pesanan anda telah dikonfirmasi.\nPesanan akan segera diproses dan diantar ke kamar Anda.'}
+        if reply.text and reply.configured and not reply.degraded:
+            remember_exchange(request, message, reply.text)
+
+        return JsonResponse({
+            'ok': True,
+            'reply': reply.text,
+            'configured': reply.configured,
+            'degraded': reply.degraded,
+            'concierge': CONCIERGE_NAME,
+        })
+
+
+class RecentOrderStatusView(LoginRequiredMixin, View):
+    """Polling endpoint for every tracking card on the portal."""
+
+    raise_exception = True
+
+    def get(self, request, *args, **kwargs):
+        orders = _tracked_orders(request.user)
+        response = JsonResponse({
+            'ok': True,
+            'has_active': any(order.is_active for order in orders),
+            'server_time': timezone.localtime().isoformat(),
+            'orders': [_order_status_payload(order, request) for order in orders],
+        })
+        response['Cache-Control'] = 'no-store'
+        return response
+
+
+class ServiceOrderStatusView(LoginRequiredMixin, View):
+    """Polling endpoint for the single-order tracking page."""
+
+    raise_exception = True
+
+    def get(self, request, pk, *args, **kwargs):
+        order = get_object_or_404(_order_queryset(request.user), pk=pk)
+        response = JsonResponse({
+            'ok': True,
+            'server_time': timezone.localtime().isoformat(),
+            'order': _order_status_payload(order, request),
+        })
+        response['Cache-Control'] = 'no-store'
+        return response

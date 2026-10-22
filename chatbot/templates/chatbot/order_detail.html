@@ -1,0 +1,91 @@
+{% extends 'dashboard/guest_base.html' %}
+{% load hotel_ui %}
+{% load static %}
+{% block title %}Lacak {{ order.order_code }}{% endblock %}
+{% block eyebrow %}Room Service · Live Tracking{% endblock %}
+{% block page_title %}Lacak Pesanan{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'chatbot/css/room-service.css' %}">
+{% endblock %}
+{% block content %}
+<div class="nh-rs-detail">
+    <a class="nh-rs-back" href="{% url 'room_service_portal' %}">
+        <span aria-hidden="true">←</span> Kembali ke menu room service
+    </a>
+
+    {% if just_placed %}
+    <div class="nh-alert nh-alert-success" role="status">
+        <span class="nh-alert-dot" aria-hidden="true"></span>
+        <span>Pesanan diterima. Dapur akan segera mengonfirmasi dan Anda dapat memantau statusnya di halaman ini.</span>
+    </div>
+    {% endif %}
+
+    <section class="nh-rs-detail-hero">
+        <div>
+            <p class="nh-kicker">Pesanan {{ order.order_code }}</p>
+            <h2>{{ order.fulfillment_label }}</h2>
+            <p>{{ order.destination_label }} <span aria-hidden="true">·</span> {{ order.created_at|date:'d M Y · H:i' }} WIB</p>
+        </div>
+        <div class="nh-rs-detail-facts">
+            <div><small>Reservasi</small><strong>{% if order.booking %}{{ order.booking.booking_code }}{% else %}—{% endif %}</strong></div>
+            <div><small>Item</small><strong>{{ order.item_count }}</strong></div>
+            <div><small>Total</small><strong>Rp {{ order.total|rupiah }}</strong></div>
+        </div>
+    </section>
+
+    <div class="nh-rs-detail-layout">
+        <section class="nh-card" aria-labelledby="tracking-detail-heading">
+            <div class="nh-rs-history-head">
+                <div>
+                    <p class="nh-kicker">Status dapur</p>
+                    <h2 id="tracking-detail-heading">Perjalanan pesanan</h2>
+                </div>
+                <span class="nh-rs-live{% if order.is_active %} is-live{% endif %}">
+                    <span aria-hidden="true"></span>{% if order.is_active %}Live{% else %}Final{% endif %}
+                </span>
+            </div>
+            <div
+                id="order-tracking-list"
+                data-order-tracking
+                data-mode="single"
+                data-endpoint="{{ tracking_endpoint }}"
+                data-has-active="{{ order.is_active|yesno:'true,false' }}"
+            >
+                {% include 'chatbot/_order_tracking.html' with order=order %}
+            </div>
+            <p class="nh-visually-hidden" data-track-status aria-live="polite"></p>
+        </section>
+
+        <aside class="nh-rs-detail-side">
+            <section class="nh-card">
+                <p class="nh-kicker">Ringkasan stay</p>
+                <h2 class="nh-rs-side-title">Detail pengantaran</h2>
+                {% if order.booking %}
+                <dl class="nh-rs-detail-list">
+                    <div><dt>Reservasi</dt><dd>{{ order.booking.booking_code }}</dd></div>
+                    <div><dt>Kamar</dt><dd>{{ order.booking.room.room_type.name }} · {{ order.booking.room.number }}</dd></div>
+                    <div><dt>Check-in</dt><dd>{{ order.booking.tanggal_check_in|date:'d M Y' }}</dd></div>
+                    <div><dt>Check-out</dt><dd>{{ order.booking.tanggal_check_out|date:'d M Y' }}</dd></div>
+                </dl>
+                {% else %}
+                <p class="nh-help-text">Pesanan ini tidak terhubung ke reservasi tertentu.</p>
+                {% endif %}
+                <div class="nh-rs-detail-destination">
+                    <small>Tujuan penyajian</small>
+                    <strong>{% if order.is_pickup %}The Grand Dining &amp; Lounge{% else %}{{ order.destination_label }}{% endif %}</strong>
+                    <span>{% if order.is_pickup %}Silakan tunjukkan kode pesanan kepada staf restoran.{% else %}Tim room service akan mengetuk pintu kamar Anda.{% endif %}</span>
+                </div>
+            </section>
+
+            <section class="nh-note-card nh-rs-note">
+                <strong>Butuh bantuan?</strong>
+                <p>Hubungi resepsionis 24 jam bila pesanan Anda terlambat, perlu diubah, atau ada kebutuhan alergi yang mendesak.</p>
+                <a class="nh-text-link" href="{% url 'room_service_portal' %}">Buka menu &amp; concierge <span aria-hidden="true">→</span></a>
+            </section>
+        </aside>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'chatbot/js/room-service.js' %}" defer></script>
+{% endblock %}

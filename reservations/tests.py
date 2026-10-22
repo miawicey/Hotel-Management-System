@@ -415,6 +415,46 @@ class ReviewFeatureTest(TestCase):
 
         self.assertFalse(form.is_valid())
 
+    def test_rating_zero_is_rejected(self):
+        form = ReviewForm(data={'rating': 0, 'comment': 'Invalid'})
+
+        self.assertFalse(form.is_valid())
+
+    def test_every_star_value_between_one_and_five_is_accepted(self):
+        for value in range(1, 6):
+            form = ReviewForm(data={'rating': value, 'comment': 'Nyaman.'})
+            self.assertTrue(form.is_valid(), f'rating {value} should validate')
+
+    def test_star_rating_is_required(self):
+        form = ReviewForm(data={'rating': '', 'comment': 'Tanpa rating.'})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('Pilih rating bintang 1 sampai 5.', form.errors['rating'])
+
+    def test_submission_confirms_the_review_is_public(self):
+        response = self.client.post(
+            f'/reservations/{self.booking.pk}/review/',
+            {'rating': 5, 'comment': 'Sangat nyaman.'},
+            follow=True,
+        )
+
+        self.assertContains(response, 'Ulasan Anda sudah tayang di halaman Ulasan Tamu.')
+
+    def test_display_name_and_initials_fall_back_to_username(self):
+        review = Review.objects.create(booking=self.booking, guest=self.user, rating=5)
+
+        self.assertEqual(review.display_name, 'review-guest')
+        self.assertEqual(review.initials, 'RE')
+
+    def test_display_name_and_initials_prefer_the_guest_full_name(self):
+        self.user.first_name = 'Ayu'
+        self.user.last_name = 'Pramesti'
+        self.user.save()
+        review = Review.objects.create(booking=self.booking, guest=self.user, rating=5)
+
+        self.assertEqual(review.display_name, 'Ayu Pramesti')
+        self.assertEqual(review.initials, 'AP')
+
 
 class VoucherUsageTest(TestCase):
     def setUp(self):
@@ -571,3 +611,409 @@ class ReceptionViewTest(TestCase):
         self.room.refresh_from_db()
         self.assertEqual(booking.status_pesanan, 'CHECKED_OUT')
         self.assertEqual(self.room.status, 'DIRTY')
+
+
+class PaymentServiceTransitionTest(TestCase):
+    """State changes are enforced by transactions in reservations.services."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('service-guest', password='p')
+        room = Room.objects.order_by('number').first()
+        self.booking = Booking.objects.create(
+            user=self.user, room=room,
+            tanggal_check_in=date(2027, 4, 1), tanggal_check_out=date(2027, 4, 2),
+            jumlah_tamu=1,
+        )
+        self.booking.hitung_total_biaya()
+        self.payment = Payment.objects.create(
+            booking=self.booking, amount=self.booking.total_biaya_akhir,
+            metode_pembayaran='Transfer Bank', status_pembayaran='PENDING_VERIFICATION',
+        )
+
+    def test_approve_moves_booking_to_confirmed(self):
+        from reservations.services import verify_payment
+
+        verify_payment(self.payment, approved=True)
+
+        self.payment.refresh_from_db()
+        self.booking.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'VERIFIED')
+        self.assertEqual(self.booking.status_pesanan, 'CONFIRMED')
+
+    def test_approving_twice_is_idempotent(self):
+        from reservations.services import verify_payment
+
+        verify_payment(self.payment, approved=True)
+        verify_payment(self.payment, approved=True)
+
+        self.assertEqual(
+            Payment.objects.filter(
+                booking=self.booking, status_pembayaran='VERIFIED',
+            ).count(),
+            1,
+        )
+
+    def test_verified_payment_cannot_be_rejected(self):
+        from reservations.services import InvalidTransition, verify_payment
+
+        verify_payment(self.payment, approved=True)
+
+        with self.assertRaises(InvalidTransition):
+            verify_payment(self.payment, approved=False)
+
+    def test_rejected_payment_can_resubmit_proof(self):
+        from reservations.services import submit_payment_proof, verify_payment
+
+        verify_payment(self.payment, approved=False, reason='Bukti buram.')
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'REJECTED')
+
+        submit_payment_proof(
+            self.booking, metode_pembayaran='Transfer Bank', actor=self.user,
+        )
+
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'PENDING_VERIFICATION')
+
+    def test_cancelled_booking_cannot_be_confirmed_by_late_payment(self):
+        from reservations.services import InvalidTransition, verify_payment
+
+        self.booking.batalkan_pesanan()
+
+        with self.assertRaises(InvalidTransition):
+            verify_payment(self.payment, approved=True)
+
+    def test_refund_requires_verified_payment(self):
+        from reservations.services import InvalidTransition, request_refund
+
+        with self.assertRaises(InvalidTransition):
+            request_refund(self.payment)
+
+    def test_full_refund_flow_cancels_booking(self):
+        from reservations.services import (
+            complete_refund,
+            request_refund,
+            verify_payment,
+        )
+
+        verify_payment(self.payment, approved=True)
+        request_refund(self.payment, reason='Tamu berubah rencana.')
+        complete_refund(self.payment, reason='Dana dikembalikan.')
+
+        self.payment.refresh_from_db()
+        self.booking.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'REFUNDED')
+        self.assertIsNotNone(self.payment.refunded_at)
+        self.assertEqual(self.booking.status_pesanan, 'CANCELLED')
+
+    def test_paying_after_refund_started_is_rejected(self):
+        from reservations.services import (
+            InvalidTransition,
+            request_refund,
+            verify_payment,
+        )
+
+        verify_payment(self.payment, approved=True)
+        request_refund(self.payment)
+
+        with self.assertRaises(InvalidTransition):
+            verify_payment(self.payment, approved=True)
+
+    def test_cancelling_verified_booking_moves_payment_to_refund_pending(self):
+        from reservations.services import verify_payment
+
+        verify_payment(self.payment, approved=True)
+
+        self.assertTrue(self.booking.batalkan_pesanan())
+
+        self.booking.refresh_from_db()
+        self.payment.refresh_from_db()
+        self.assertEqual(self.booking.status_pesanan, 'CANCELLED')
+        self.assertEqual(self.payment.status_pembayaran, 'REFUND_PENDING')
+
+
+class PaymentProofAccessTest(TestCase):
+    """Bank-transfer receipts are private: owner and staff only."""
+
+    def setUp(self):
+        import os
+        import tempfile
+
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmpdir.cleanup)
+        # ``self.settings`` fires the ``setting_changed`` signal, which also
+        # clears the cached ``MEDIA_ROOT`` on ``default_storage`` — patching
+        # ``settings.MEDIA_ROOT`` directly would leave the stale storage root.
+        self._media_override = self.settings(MEDIA_ROOT=self._tmpdir.name)
+        self._media_override.enable()
+        self.addCleanup(self._media_override.disable)
+
+        self.owner = User.objects.create_user('proof-owner', password='p')
+        self.other = User.objects.create_user('proof-other', password='p')
+        self.staff = User.objects.create_user(
+            'proof-staff', password='p', is_staff=True,
+        )
+        room = Room.objects.order_by('number').first()
+        self.booking = Booking.objects.create(
+            user=self.owner, room=room,
+            tanggal_check_in=date(2027, 5, 1), tanggal_check_out=date(2027, 5, 2),
+            jumlah_tamu=1,
+        )
+        self.payment = Payment.objects.create(
+            booking=self.booking, amount=500000, metode_pembayaran='Transfer Bank',
+            status_pembayaran='PENDING_VERIFICATION',
+        )
+        proof_dir = os.path.join(self._tmpdir.name, 'bukti_transfer')
+        os.makedirs(proof_dir, exist_ok=True)
+        with open(os.path.join(proof_dir, 'proof.png'), 'wb') as handle:
+            handle.write(b'\x89PNG\r\n\x1a\nfake-image-bytes')
+        self.payment.bukti_transfer_url = 'bukti_transfer/proof.png'
+        self.payment.save(update_fields=['bukti_transfer_url'])
+
+    def _url(self):
+        return f'/reservations/payments/{self.payment.pk}/proof/'
+
+    def test_owner_can_download_proof(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.get(self._url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'image/png')
+        self.assertEqual(response['Cache-Control'], 'private, no-store')
+        body = b''.join(response.streaming_content)
+        self.assertIn(b'fake-image-bytes', body)
+
+    def test_other_guest_is_forbidden(self):
+        self.client.force_login(self.other)
+
+        response = self.client.get(self._url())
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_staff_can_download_proof(self):
+        self.client.force_login(self.staff)
+
+        response = self.client.get(self._url())
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.get(self._url())
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+
+    def test_missing_file_returns_404(self):
+        self.payment.bukti_transfer_url = 'bukti_transfer/missing.png'
+        self.payment.save(update_fields=['bukti_transfer_url'])
+        self.client.force_login(self.owner)
+
+        response = self.client.get(self._url())
+
+        self.assertEqual(response.status_code, 404)
+
+
+class VoucherReturnOnCancelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('voucher-return', password='p')
+        self.client.force_login(self.user)
+
+    def test_cancelling_booking_returns_voucher_quota(self):
+        voucher = PromoVoucher.objects.get(kode_voucher='HEMAT10')
+        initial_quota = voucher.kuota_penggunaan
+        room = Room.objects.order_by('number').first()
+        start = timezone.localdate() + timedelta(days=30)
+
+        response = self.client.post('/reservations/buat/', {
+            'room': room.pk,
+            'tanggal_check_in': start.isoformat(),
+            'tanggal_check_out': (start + timedelta(days=1)).isoformat(),
+            'jumlah_tamu': 1,
+            'voucher': voucher.pk,
+        })
+        self.assertEqual(response.status_code, 302)
+
+        booking = Booking.objects.get(user=self.user)
+        voucher.refresh_from_db()
+        self.assertEqual(voucher.kuota_penggunaan, initial_quota - 1)
+        self.assertTrue(booking.voucher_digunakan)
+
+        self.client.post(f'/reservations/{booking.pk}/batal/')
+
+        booking.refresh_from_db()
+        voucher.refresh_from_db()
+        self.assertEqual(booking.status_pesanan, 'CANCELLED')
+        self.assertFalse(booking.voucher_digunakan)
+        self.assertEqual(voucher.kuota_penggunaan, initial_quota)
+
+    def test_cancelling_without_voucher_returns_nothing(self):
+        room = Room.objects.order_by('number').first()
+        start = timezone.localdate() + timedelta(days=35)
+        booking = Booking.objects.create(
+            user=self.user, room=room,
+            tanggal_check_in=start, tanggal_check_out=start + timedelta(days=1),
+            jumlah_tamu=1,
+        )
+
+        self.client.post(f'/reservations/{booking.pk}/batal/')
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status_pesanan, 'CANCELLED')
+        self.assertFalse(booking.voucher_digunakan)
+
+
+class PaymentWebhookTest(TestCase):
+    """Signed, idempotent gateway webhook for payment state changes."""
+
+    WEBHOOK_URL = '/reservations/payments/webhook/'
+    SECRET = 'test-webhook-secret'
+
+    def setUp(self):
+        self.user = User.objects.create_user('webhook-guest', password='p')
+        room = Room.objects.order_by('number').first()
+        self.booking = Booking.objects.create(
+            user=self.user, room=room,
+            tanggal_check_in=date(2027, 6, 1), tanggal_check_out=date(2027, 6, 2),
+            jumlah_tamu=1,
+        )
+        self.booking.hitung_total_biaya()
+        self.payment = Payment.objects.create(
+            booking=self.booking, amount=self.booking.total_biaya_akhir,
+            metode_pembayaran='Gateway', status_pembayaran='UNPAID',
+        )
+
+    def _sign(self, body, secret=None):
+        import hashlib
+        import hmac
+
+        return hmac.new(
+            (secret or self.SECRET).encode('utf-8'), body, hashlib.sha256,
+        ).hexdigest()
+
+    def _post(self, payload, *, signed=True, secret=None):
+        import json
+
+        body = json.dumps(payload).encode('utf-8')
+        headers = {}
+        if signed:
+            headers['HTTP_X_NOCTURN_SIGNATURE'] = (
+                'sha256=' + self._sign(body, secret)
+            )
+        return self.client.post(
+            self.WEBHOOK_URL, data=body,
+            content_type='application/json', **headers,
+        )
+
+    def _paid_payload(self, **overrides):
+        payload = {
+            'event_id': 'evt-paid-001',
+            'type': 'payment.paid',
+            'provider': 'generic',
+            'booking_id': self.booking.pk,
+            'amount': str(self.booking.total_biaya_akhir),
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_webhook_disabled_without_secret(self):
+        with self.settings(PAYMENT_WEBHOOK_SECRET=''):
+            response = self._post(self._paid_payload())
+
+        self.assertEqual(response.status_code, 503)
+
+    def test_invalid_signature_is_rejected(self):
+        with self.settings(PAYMENT_WEBHOOK_SECRET=self.SECRET):
+            response = self._post(self._paid_payload(), secret='wrong-secret')
+
+        self.assertEqual(response.status_code, 401)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'UNPAID')
+
+    def test_signed_paid_event_confirms_booking_once(self):
+        from reservations.models import PaymentEvent
+
+        with self.settings(PAYMENT_WEBHOOK_SECRET=self.SECRET):
+            response = self._post(self._paid_payload())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'processed')
+
+        self.payment.refresh_from_db()
+        self.booking.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'VERIFIED')
+        self.assertEqual(self.booking.status_pesanan, 'CONFIRMED')
+        event = PaymentEvent.objects.get(event_id='evt-paid-001')
+        self.assertIsNotNone(event.processed_at)
+        self.assertEqual(event.payment, self.payment)
+
+    def test_duplicate_event_is_idempotent(self):
+        from reservations.models import PaymentEvent
+
+        with self.settings(PAYMENT_WEBHOOK_SECRET=self.SECRET):
+            first = self._post(self._paid_payload())
+            second = self._post(self._paid_payload())
+
+        self.assertEqual(first.json()['status'], 'processed')
+        self.assertEqual(second.json()['status'], 'duplicate')
+        self.assertEqual(PaymentEvent.objects.count(), 1)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'VERIFIED')
+
+    def test_amount_mismatch_is_rejected(self):
+        with self.settings(PAYMENT_WEBHOOK_SECRET=self.SECRET):
+            response = self._post(self._paid_payload(amount='1'))
+
+        self.assertEqual(response.status_code, 409)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'UNPAID')
+
+    def test_failed_event_marks_payment_failed(self):
+        with self.settings(PAYMENT_WEBHOOK_SECRET=self.SECRET):
+            response = self._post({
+                'event_id': 'evt-failed-001',
+                'type': 'payment.failed',
+                'booking_id': self.booking.pk,
+                'reason': 'Kartu ditolak.',
+            })
+
+        self.assertEqual(response.status_code, 200)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'FAILED')
+        self.assertIn('Kartu ditolak', self.payment.failure_reason)
+
+    def test_refunded_event_completes_refund(self):
+        from reservations.services import request_refund, verify_payment
+
+        verify_payment(self.payment, approved=True)
+        request_refund(self.payment)
+
+        with self.settings(PAYMENT_WEBHOOK_SECRET=self.SECRET):
+            response = self._post({
+                'event_id': 'evt-refund-001',
+                'type': 'payment.refunded',
+                'booking_id': self.booking.pk,
+            })
+
+        self.assertEqual(response.status_code, 200)
+        self.payment.refresh_from_db()
+        self.booking.refresh_from_db()
+        self.assertEqual(self.payment.status_pembayaran, 'REFUNDED')
+        self.assertEqual(self.booking.status_pesanan, 'CANCELLED')
+
+    def test_unknown_event_type_is_ignored(self):
+        with self.settings(PAYMENT_WEBHOOK_SECRET=self.SECRET):
+            response = self._post({
+                'event_id': 'evt-unknown-001',
+                'type': 'payment.ping',
+                'booking_id': self.booking.pk,
+            })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ignored')
+
+    def test_missing_event_fields_are_rejected(self):
+        with self.settings(PAYMENT_WEBHOOK_SECRET=self.SECRET):
+            response = self._post({'type': 'payment.paid'})
+
+        self.assertEqual(response.status_code, 400)

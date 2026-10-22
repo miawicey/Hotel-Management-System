@@ -1,0 +1,23 @@
+{% extends "admin/login.html" %}
+{% load i18n %}
+
+{% block bodyclass %}{{ block.super }} nh-admin-login{% endblock %}
+
+{% block content %}
+<div class="nh-login-panel">
+    <section class="nh-login-intro" aria-labelledby="nh-login-heading">
+        <p class="nh-login-eyebrow">Nocturn Haven</p>
+        <h2 id="nh-login-heading">Ruang kendali operasional hotel.</h2>
+        <p>Kelola reservasi, verifikasi pembayaran, dan layani permintaan tamu dari satu konsol yang tenang dan fokus.</p>
+        <ul class="nh-login-points">
+            <li>Verifikasi bukti transfer &amp; kelola refund</li>
+            <li>Pantau okupansi kamar dan jadwal check-in</li>
+            <li>Tindak lanjuti pesanan room service</li>
+        </ul>
+        <span class="nh-login-seal" aria-hidden="true">N</span>
+    </section>
+    <section class="nh-login-form">
+        {{ block.super }}
+    </section>
+</div>
+{% endblock %}

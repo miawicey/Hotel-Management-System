@@ -1,0 +1,73 @@
+{% load hotel_ui %}
+<article class="nh-rs-track" data-order-track data-order-id="{{ order.pk }}" data-status="{{ order.status }}" data-active="{{ order.is_active|yesno:'true,false' }}">
+    <header class="nh-rs-track-head">
+        <div class="nh-rs-track-identity">
+            <p class="nh-kicker">Pesanan {{ order.order_code }}</p>
+            <h3>{{ order.get_status_display }}</h3>
+            <p>
+                {{ order.created_at|date:'d M Y · H:i' }}
+                <span aria-hidden="true">·</span>
+                {{ order.fulfillment_label }}
+                {% if order.booking %}
+                <span aria-hidden="true">·</span>
+                {{ order.booking.booking_code }}
+                {% endif %}
+            </p>
+        </div>
+        <span class="nh-rs-badge nh-rs-badge-{{ order.status_tone }}">
+            <span aria-hidden="true"></span>{{ order.get_status_display }}
+        </span>
+    </header>
+
+    {% if order.status == 'CANCELLED' %}
+    <div class="nh-rs-cancelled">
+        <strong>Pesanan dibatalkan</strong>
+        <p>Jika ini tidak Anda harapkan, hubungi resepsionis 24 jam agar tim kami dapat membantu.</p>
+    </div>
+    {% else %}
+    <div class="nh-rs-track-progress">
+        <div class="nh-rs-track-rail" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ order.progress_percent }}" aria-label="Progres pesanan {{ order.order_code }}">
+            <span style="width: {{ order.progress_percent }}%"></span>
+        </div>
+        <ol class="nh-rs-track-steps">
+            {% for step in order.status_steps %}
+            <li class="nh-rs-track-step{% if step.state %} is-{{ step.state }}{% endif %}">
+                <span class="nh-rs-track-dot" aria-hidden="true">{% if step.state == 'done' %}✓{% endif %}</span>
+                <strong>{{ step.label }}</strong>
+                <small>{{ step.description }}</small>
+            </li>
+            {% endfor %}
+        </ol>
+    </div>
+    {% endif %}
+
+    <div class="nh-rs-track-body">
+        <div class="nh-rs-track-items">
+            <small>Rincian pesanan</small>
+            <ul>
+                {% for item in order.items.all %}
+                <li><span>{{ item.name }} <em>×{{ item.quantity }}</em></span><strong>Rp {{ item.line_total|rupiah }}</strong></li>
+                {% empty %}
+                <li><span>{{ order.detail|default:'Pesanan room service' }}</span></li>
+                {% endfor %}
+            </ul>
+            {% if order.special_instructions %}
+            <p class="nh-rs-track-note">Catatan: {{ order.special_instructions }}</p>
+            {% endif %}
+        </div>
+        <div class="nh-rs-track-meta">
+            <div><small>Tujuan</small><strong>{{ order.destination_label }}</strong></div>
+            {% if order.is_active %}
+            <div><small>Estimasi</small><strong>±{{ order.eta_minutes }} menit</strong></div>
+            {% endif %}
+            <div><small>Total</small><strong>Rp {{ order.total|rupiah }}</strong></div>
+        </div>
+    </div>
+
+    <footer class="nh-rs-track-footer">
+        <span>Diperbarui {{ order.updated_at|date:'H:i' }} WIB</span>
+        <a class="nh-rs-track-link" href="{% url 'room_service_order_detail' order.pk %}">
+            Lacak pesanan <span aria-hidden="true">→</span>
+        </a>
+    </footer>
+</article>

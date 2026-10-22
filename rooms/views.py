@@ -8,22 +8,50 @@ from django.utils.dateparse import parse_date
 from reservations.models import Booking, Review
 from .models import Room, RoomType
 
+# Editorial photography per room family — keeps the listing visually varied
+# while every card keeps the same frame, ratio, and overlay treatment.
+ROOM_IMAGES = {
+    'villa': 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1400&q=85',
+    'suite': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1400&q=85',
+    'twin': 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1400&q=85',
+    'king': 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1400&q=85',
+}
+DEFAULT_ROOM_IMAGE = (
+    'https://images.unsplash.com/photo-1566665797739-1674de7a421a'
+    '?auto=format&fit=crop&w=1400&q=85'
+)
+
+
+def _room_image(room_type_name):
+    lowered = room_type_name.lower()
+    for keyword, url in ROOM_IMAGES.items():
+        if keyword in lowered:
+            return url
+    return DEFAULT_ROOM_IMAGE
+
 
 def _room_card(room):
     price = f'{room.room_type.price_per_night:,.0f}'.replace(',', '.')
     return {
         'id': room.pk,
+        'number': room.number,
         'name': f'Kamar {room.number}',
-        'label': f'Lantai {room.floor}',
+        'type_name': room.room_type.name,
+        'label': f'Lantai {room.floor} · {room.room_type.name}',
+        'floor': room.floor,
         'price': price,
+        'price_value': int(room.room_type.price_per_night),
         'total': price,
-        'size': 'Informasi ukuran tersedia di resepsionis',
-        'bed': 'Tempat tidur sesuai Room Type',
-        'capacity': f'Maks {room.room_type.capacity} Tamu',
+        'capacity_value': room.room_type.capacity,
+        'size': f'Kapasitas {room.room_type.capacity} tamu',
+        'bed': 'Tempat tidur sesuai tipe kamar',
+        'capacity': f'Maks {room.room_type.capacity} tamu',
         'view': 'Pemandangan hotel',
         'badge': 'Tersedia' if room.status == 'CLEAN' else room.get_status_display(),
-        'image': 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=85',
-        'features': ['Wi-Fi', 'Layanan kamar'],
+        'is_available': room.status == 'CLEAN',
+        'description': room.room_type.description,
+        'image': _room_image(room.room_type.name),
+        'features': ['Wi-Fi berkecepatan tinggi', 'Layanan kamar 24 jam', 'Sarapan untuk dua tamu'],
     }
 
 
@@ -113,33 +141,78 @@ def room_detail(request, pk):
             'note': entry.note if entry else ('Terisi' if is_booked else ''),
         })
 
-    reviews = list(
+    reviews = (
         Review.objects.filter(booking__room=room)
         .select_related('guest')
         .order_by('-created_at')
     )
-    rating_summary = Review.objects.filter(booking__room=room).aggregate(
-        average=Avg('rating'), count=Count('id')
-    )
+    rating_summary = reviews.aggregate(average=Avg('rating'), count=Count('id'))
 
     return render(request, 'rooms/room_detail.html', {
         'room': _room_card(room),
         'calendar': calendar,
-        'reviews': reviews,
+        'reviews': reviews[:4],
         'rating_average': rating_summary['average'],
+        'rating_round': round(rating_summary['average'] or 0),
         'rating_count': rating_summary['count'],
     })
 
 
+def _rating_distribution(reviews):
+    """Five rows (5★ → 1★) with counts and percentages for the rating bars."""
+    total = reviews.count()
+    # ``order_by()`` clears any ordering: a lingering ORDER BY would leak into
+    # the GROUP BY and turn every bucket into a count of one.
+    counts = dict(
+        reviews.order_by()
+        .values_list('rating')
+        .annotate(c=Count('id'))
+        .values_list('rating', 'c')
+    )
+    distribution = []
+    for value in range(5, 0, -1):
+        count = counts.get(value, 0)
+        distribution.append({
+            'stars': value,
+            'count': count,
+            'percent': round(count * 100 / total) if total else 0,
+        })
+    return distribution
+
+
 def review_list(request):
-    """Daftar ulasan tamu untuk semua kamar (halaman "Ulasan Tamu")."""
+    """Guest review wall ("Ulasan Tamu") with filters and rating distribution."""
     reviews = (
-        Review.objects.select_related('guest', 'booking__room')
+        Review.objects.select_related('guest', 'booking__room__room_type')
         .order_by('-created_at')
     )
     summary = reviews.aggregate(average=Avg('rating'), count=Count('id'))
+
+    distribution = _rating_distribution(reviews)
+
+    selected_rating = request.GET.get('rating', '')
+    if not (selected_rating.isdigit() and 1 <= int(selected_rating) <= 5):
+        selected_rating = ''
+    if selected_rating:
+        reviews = reviews.filter(rating=int(selected_rating))
+
+    # Nudge signed-in guests who have stayed but not reviewed yet.
+    pending_reviews = []
+    if request.user.is_authenticated:
+        pending_reviews = list(
+            Booking.objects.filter(
+                user=request.user,
+                status_pesanan='CHECKED_OUT',
+                review__isnull=True,
+            ).select_related('room__room_type')[:3]
+        )
+
     return render(request, 'rooms/review_list.html', {
         'reviews': reviews,
         'rating_average': summary['average'],
+        'rating_round': round(summary['average'] or 0),
         'rating_count': summary['count'],
+        'distribution': distribution,
+        'selected_rating': selected_rating,
+        'pending_reviews': pending_reviews,
     })

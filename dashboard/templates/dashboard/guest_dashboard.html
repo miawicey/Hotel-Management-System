@@ -1,0 +1,175 @@
+{% extends 'dashboard/guest_base.html' %}
+{% load hotel_ui %}
+{% load static %}
+{% block title %}Ringkasan Tamu{% endblock %}
+{% block eyebrow %}Portal Tamu · {{ today|date:'d M Y' }}{% endblock %}
+{% block page_title %}Ringkasan Menginap{% endblock %}
+{% block content %}
+<section class="nh-welcome">
+    <div class="nh-welcome-copy">
+        <p class="nh-kicker">Selamat datang kembali</p>
+        <h2>{% firstof profile.display_name user.get_full_name user.email "Tamu Nocturn Haven" %}</h2>
+        <p>Semua reservasi, pembayaran, dan permintaan room service Anda tersusun rapi di satu tempat.</p>
+        <div class="nh-welcome-actions">
+            <a class="nh-button nh-button-primary" href="{% url 'booking_create' %}">Buat Reservasi Baru</a>
+            <a class="nh-button nh-button-ghost" href="{% url 'room_service_portal' %}">Pesan Room Service</a>
+        </div>
+    </div>
+    <div class="nh-welcome-orbit" aria-hidden="true">
+        <span class="nh-orbit-ring"></span>
+        <span class="nh-orbit-monogram">N</span>
+        <span class="nh-orbit-caption">SINCE 1987</span>
+    </div>
+</section>
+
+<section class="nh-stat-grid" aria-label="Ringkasan akun">
+    <article class="nh-stat-card">
+        <span class="nh-stat-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 6V4m8 2V4"/></svg>
+        </span>
+        <div><strong>{{ booking_count }}</strong><span>Total reservasi</span></div>
+    </article>
+    <article class="nh-stat-card">
+        <span class="nh-stat-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 8h14M5 16h14"/></svg>
+        </span>
+        <div><strong>{{ upcoming_count }}</strong><span>Menginap mendatang</span></div>
+    </article>
+    <article class="nh-stat-card">
+        <span class="nh-stat-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+        </span>
+        <div><strong>{{ payment_counts.paid }}</strong><span>Pembayaran lunas</span></div>
+    </article>
+    <article class="nh-stat-card">
+        <span class="nh-stat-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17h16M6 17a6 6 0 0 1 12 0M12 7V5"/></svg>
+        </span>
+        <div><strong>{{ service_eligible_count }}</strong><span>Stay siap room service</span></div>
+    </article>
+</section>
+
+<div class="nh-two-column">
+    <section class="nh-card nh-stay-card">
+        <div class="nh-card-heading">
+            <div>
+                <p class="nh-kicker">{% if active_stay %}Sedang menginap{% else %}Perjalanan berikutnya{% endif %}</p>
+                <h2>{% if next_stay %}{{ next_stay.room.room_type.name }}{% else %}Belum ada rencana menginap{% endif %}</h2>
+            </div>
+            {% if next_stay %}<span class="nh-status nh-status-{{ next_stay.payment_status_group }}"><span aria-hidden="true"></span>{{ next_stay.payment_status_label }}</span>{% endif %}
+        </div>
+
+        {% if next_stay %}
+        <div class="nh-stay-body">
+            <div class="nh-stay-code">
+                <span>Nomor reservasi</span>
+                <strong>{{ next_stay.booking_code }}</strong>
+            </div>
+            <div class="nh-stay-dates">
+                <div><small>Check-in</small><strong>{{ next_stay.tanggal_check_in|date:'d M Y' }}</strong></div>
+                <span class="nh-date-arrow" aria-hidden="true">→</span>
+                <div><small>Check-out</small><strong>{{ next_stay.tanggal_check_out|date:'d M Y' }}</strong></div>
+            </div>
+            <div class="nh-stay-meta">
+                <span>Kamar {{ next_stay.room.number }}</span>
+                <span>{{ next_stay.jumlah_tamu }} tamu</span>
+                <span>{{ next_stay.durasi_malam }} malam</span>
+            </div>
+        </div>
+        <div class="nh-stay-footer">
+            <div class="nh-inline-amount"><small>Total menginap</small><strong>Rp {{ next_stay.total_biaya_akhir|rupiah }}</strong></div>
+            <div class="nh-card-actions">
+                <a class="nh-button nh-button-ghost" href="{% url 'booking_detail' next_stay.pk %}">Lihat rincian</a>
+                {% if next_stay.status_pesanan == 'PENDING_PAYMENT' %}
+                <a class="nh-button nh-button-primary" href="{% url 'payment_create' next_stay.pk %}">Selesaikan pembayaran</a>
+                {% elif next_stay.can_order_room_service %}
+                <a class="nh-button nh-button-primary" href="{% url 'room_service_portal' %}">Pesan room service</a>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="nh-empty">
+            <p>Belum ada reservasi aktif. Pilih kamar dan mulai susun perjalanan Anda.</p>
+            <a class="nh-button nh-button-primary" href="{% url 'room_list' %}">Cari kamar tersedia</a>
+        </div>
+        {% endif %}
+    </section>
+
+    <aside class="nh-card nh-payment-health">
+        <div class="nh-card-heading">
+            <div><p class="nh-kicker">Kesehatan pembayaran</p><h2>Status finansial</h2></div>
+        </div>
+        <div class="nh-health-row"><span class="nh-health-dot is-paid" aria-hidden="true"></span><span>Lunas</span><strong>{{ payment_counts.paid }}</strong></div>
+        <div class="nh-health-row"><span class="nh-health-dot is-pending" aria-hidden="true"></span><span>Menunggu pembayaran</span><strong>{{ payment_counts.pending }}</strong></div>
+        <div class="nh-health-row"><span class="nh-health-dot is-refund" aria-hidden="true"></span><span>Refund</span><strong>{{ payment_counts.refund }}</strong></div>
+        <div class="nh-total-paid">
+            <small>Total pembayaran terverifikasi</small>
+            <strong>Rp {{ total_paid|rupiah }}</strong>
+        </div>
+        <p class="nh-help-text">Pembayaran diverifikasi manual oleh tim reservasi. Unggah bukti transfer agar proses lebih cepat.</p>
+    </aside>
+</div>
+
+<div class="nh-two-column nh-two-column-wide">
+    <section class="nh-card">
+        <div class="nh-card-heading">
+            <div><p class="nh-kicker">Aktivitas terakhir</p><h2>Reservasi terbaru</h2></div>
+            <a class="nh-text-link" href="{% url 'booking_list' %}">Lihat semua <span aria-hidden="true">↗</span></a>
+        </div>
+        {% if recent_bookings %}
+        <div class="nh-booking-list">
+            {% for booking in recent_bookings %}
+            <a class="nh-booking-row" href="{% url 'booking_detail' booking.pk %}">
+                <span class="nh-booking-date"><strong>{{ booking.tanggal_check_in|date:'d' }}</strong>{{ booking.tanggal_check_in|date:'M' }}</span>
+                <span class="nh-booking-main">
+                    <strong>{{ booking.room.room_type.name }} · {{ booking.booking_code }}</strong>
+                    <small>{{ booking.tanggal_check_in|date:'d M' }} – {{ booking.tanggal_check_out|date:'d M Y' }} · {{ booking.jumlah_tamu }} tamu</small>
+                </span>
+                <span class="nh-status nh-status-{{ booking.payment_status_group }}"><span aria-hidden="true"></span>{{ booking.payment_status_label }}</span>
+                <span class="nh-booking-price">Rp {{ booking.total_biaya_akhir|rupiah }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="nh-empty"><p>Belum ada aktivitas reservasi.</p></div>
+        {% endif %}
+    </section>
+
+    <aside class="nh-stack">
+        <section class="nh-card nh-profile-progress">
+            <div class="nh-card-heading">
+                <div><p class="nh-kicker">Profil tamu</p><h2>{{ profile.completeness }}% lengkap</h2></div>
+                <a class="nh-text-link" href="{% url 'profile' %}">Atur</a>
+            </div>
+            <div class="nh-progress" role="progressbar" aria-valuenow="{{ profile.completeness }}" aria-valuemin="0" aria-valuemax="100" aria-label="Kelengkapan profil">
+                <span style="width: {{ profile.completeness }}%"></span>
+            </div>
+            <p class="nh-help-text">Lengkapi nomor telepon, tanggal lahir, dan alamat untuk mempercepat proses check-in.</p>
+        </section>
+
+        <section class="nh-card">
+            <div class="nh-card-heading">
+                <div><p class="nh-kicker">Room service</p><h2>Pesanan terbaru</h2></div>
+                <a class="nh-text-link" href="{% url 'room_service_portal' %}">Buka menu</a>
+            </div>
+            {% for order in recent_orders %}
+            <div class="nh-order-row">
+                <div><strong>#{{ order.pk|stringformat:'04d' }}</strong><small>{{ order.created_at|date:'d M Y · H:i' }}</small></div>
+                <div class="nh-order-right"><span class="nh-status nh-status-{% if order.status == 'DELIVERED' or order.status == 'READY' %}paid{% elif order.status == 'CANCELLED' %}cancelled{% else %}pending{% endif %}">{{ order.get_status_display }}</span><strong>Rp {{ order.total|rupiah }}</strong></div>
+            </div>
+            {% empty %}
+            <p class="nh-help-text">Belum ada pesanan room service.</p>
+            {% endfor %}
+        </section>
+
+        {% if reviewable_count %}
+        <a class="nh-prompt-card" href="{% url 'booking_list' %}?filter=completed">
+            <span class="nh-prompt-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.9L12 3.5Z"/></svg>
+            </span>
+            <span><strong>{{ reviewable_count }} pengalaman menunggu ulasan</strong><small>Ceritakan masa menginap Anda dan bantu tamu lain.</small></span>
+        </a>
+        {% endif %}
+    </aside>
+</div>
+{% endblock %}

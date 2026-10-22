@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Nocturn Haven{% endblock %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'dashboard/css/admin-theme.css' %}">{% endblock %}
+
+{% block extrahead %}{{ block.super }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Async webfonts: the admin must stay usable even when the font host is slow. -->
+<link rel="stylesheet" media="print" onload="this.media='all'; this.onload=null" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"></noscript>
+<script src="{% static 'js/vendor/lenis.min.js' %}" defer></script>
+<script src="{% static 'js/admin-motion.js' %}" defer></script>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name" class="nh-admin-brand">
+    <span class="nh-admin-mark" aria-hidden="true">N</span>
+    <span class="nh-admin-brand-copy">
+        <a href="{% url 'admin:index' %}">Nocturn Haven</a>
+        <small>Hospitality Control Room</small>
+    </span>
+</div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}
+<a class="nh-admin-quick" href="{% url 'guest_dashboard' %}">Buka Portal Tamu ↗</a>
+{% endblock %}

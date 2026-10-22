@@ -1,14 +1,69 @@
-{% extends 'reservations/base.html' %}
-{% block title %}Berikan Review{% endblock %}
+{% extends 'dashboard/guest_base.html' %}
+{% block title %}Ulasan {{ booking.booking_code }}{% endblock %}
+{% block eyebrow %}Ulasan Tamu{% endblock %}
+{% block page_title %}Bagikan Pengalaman Anda{% endblock %}
 {% block content %}
-<section class="page-intro"><div><h1>Bagikan pengalaman Anda</h1><p>Berikan penilaian untuk reservasi NH-{{ view.kwargs.booking_id|stringformat:'04d' }}.</p></div><span class="step-label">Review</span></section>
-<div class="reservation-layout">
-    <form class="form-card" method="post">
+<div class="nh-page-intro">
+    <div>
+        <p class="nh-kicker">Reservasi {{ booking.booking_code }}</p>
+        <h2>Ceritakan masa menginap Anda.</h2>
+        <p>Ulasan Anda membantu kami menjaga kualitas dan membantu tamu lain memilih.</p>
+    </div>
+</div>
+
+<div class="nh-centered-card">
+    <form class="nh-card nh-form-card" method="post" novalidate>
         {% csrf_token %}
-        {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-        <label class="field"><span>Rating (1-5)</span>{{ form.rating }}{% if form.rating.errors %}<small class="error-text">{{ form.rating.errors|striptags }}</small>{% endif %}</label>
-        <label class="field"><span>Komentar</span>{{ form.comment }}{% if form.comment.errors %}<small class="error-text">{{ form.comment.errors|striptags }}</small>{% endif %}</label>
-        <div class="form-footer"><a class="text-link" href="{% url 'booking_detail' view.kwargs.booking_id %}">← Kembali ke detail</a><button class="button btn btn-danger button-dark" type="submit">Kirim Review</button></div>
+        {% if form.non_field_errors %}<div class="nh-alert nh-alert-error" role="alert">{{ form.non_field_errors|striptags }}</div>{% endif %}
+        <div class="nh-card-heading"><div><p class="nh-kicker">Rating &amp; komentar</p><h2>{{ booking.room.room_type.name }} · Kamar {{ booking.room.number }}</h2></div></div>
+
+        <fieldset class="nh-field nh-field-stars">
+            <legend>{{ form.rating.label }}</legend>
+            <div class="nh-star-input" role="radiogroup" aria-label="Rating 1 sampai 5 bintang">
+                {% for radio in form.rating %}
+                <label class="nh-star" title="{{ radio.choice_label }}">
+                    {{ radio.tag }}
+                    <span class="nh-star-glyph" aria-hidden="true">★</span>
+                    <span class="nh-visually-hidden">{{ radio.choice_label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <small class="nh-star-hint">Ketuk bintang untuk memilih. 5 bintang berarti luar biasa.</small>
+            {% if form.rating.errors %}<small class="nh-field-error" role="alert">{{ form.rating.errors|striptags }}</small>{% endif %}
+        </fieldset>
+
+        <label class="nh-field">
+            <span>{{ form.comment.label }}</span>
+            {{ form.comment }}
+            {% if form.comment.errors %}<small class="nh-field-error" role="alert">{{ form.comment.errors|striptags }}</small>{% endif %}
+        </label>
+        <div class="nh-form-footer">
+            <a class="nh-text-link" href="{% url 'booking_detail' booking.pk %}">← Kembali ke rincian</a>
+            <button class="nh-button nh-button-primary" type="submit">Kirim Ulasan</button>
+        </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    'use strict';
+    // Progressive enhancement: mark the chosen star and every star before it.
+    var input = document.querySelector('.nh-star-input');
+    if (!input) return;
+    var stars = Array.prototype.slice.call(input.querySelectorAll('.nh-star'));
+
+    function paint() {
+        var checked = input.querySelector('input[type="radio"]:checked');
+        var value = checked ? Number(checked.value) : 0;
+        stars.forEach(function (star, index) {
+            star.classList.toggle('is-filled', index >= stars.length - value);
+        });
+    }
+
+    input.addEventListener('change', paint);
+    paint();
+})();
+</script>
 {% endblock %}

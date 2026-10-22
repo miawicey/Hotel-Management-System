@@ -1,10 +1,150 @@
-{% extends 'reservations/base.html' %}
-{% block title %}Detail Reservasi{% endblock %}
+{% extends 'dashboard/guest_base.html' %}
+{% load hotel_ui %}
+{% block title %}Detail Reservasi {{ object.booking_code }}{% endblock %}
+{% block eyebrow %}Reservasi {{ object.booking_code }}{% endblock %}
+{% block page_title %}Rincian Reservasi{% endblock %}
 {% block content %}
-<section class="page-intro"><div><p class="status-pill status-{{ object.status_pesanan|lower }}">{{ object.get_status_pesanan_display }}</p><h1>Reservasi Anda siap ditinjau</h1><p>Periksa kembali detail menginap sebelum menyelesaikan pembayaran.</p></div><span class="step-label">02 <i></i> 03</span></section>
-<div class="reservation-layout">
-    {% if object.status_pesanan == 'CHECKED_OUT' and not object.review %}<a class="button btn btn-danger button-dark" href="{% url 'review_create' object.pk %}">Berikan Review</a>{% endif %}
-    <section class="summary-card"><div class="summary-hero"><div><p class="eyebrow eyebrow-light">Nomor reservasi</p><h2>NH-{{ object.pk|stringformat:'04d' }}</h2></div><span class="summary-date">{{ object.created_at|date:'d M Y' }}</span></div><div class="summary-content"><div class="summary-room"><div><span class="summary-label">Kamar pilihan</span><h3>{{ object.room }}</h3><p>Pengalaman istirahat yang nyaman untuk perjalanan Anda.</p></div><strong>Rp {{ object.total_harga_dasar|floatformat:0 }}<small> total kamar</small></strong></div><div class="detail-grid"><span><small>Check-in</small><b>{{ object.tanggal_check_in|date:'d M Y' }}</b></span><span><small>Check-out</small><b>{{ object.tanggal_check_out|date:'d M Y' }}</b></span><span><small>Jumlah tamu</small><b>{{ object.jumlah_tamu }} tamu</b></span><span><small>Status</small><b>{{ object.get_status_pesanan_display }}</b></span><span><small>Pembayaran</small><b>{% if object.payment %}{{ object.payment.get_status_pembayaran_display }}{% else %}Belum ada{% endif %}</b></span></div><div class="price-list"><span>Harga kamar <b>Rp {{ object.total_harga_dasar|floatformat:0 }}</b></span><span>Pajak &amp; layanan <b>Rp {{ object.pajak_dan_layanan|floatformat:0 }}</b></span><span class="total-row">Total pembayaran <b>Rp {{ object.total_biaya_akhir|floatformat:0 }}</b></span></div><div class="form-footer"><a class="text-link" href="{% url 'home' %}">← Kembali ke beranda</a>{% if object.status_pesanan == 'PENDING_PAYMENT' %}<a class="button btn btn-danger button-dark" href="{% url 'payment_create' object.pk %}">Lanjutkan Pembayaran →</a>{% endif %}{% if object.status_pesanan == 'PENDING_PAYMENT' or object.status_pesanan == 'CONFIRMED' %}<form method="post" action="{% url 'booking_cancel' object.pk %}">{% csrf_token %}<button class="button btn btn-light" type="submit">Batalkan Reservasi</button></form>{% endif %}</div></div></section>
-    <aside class="side-card"><p class="eyebrow">Perjalanan Anda</p><h2>Semua sudah tercatat.</h2><p>Simpan nomor reservasi ini untuk memudahkan komunikasi dengan tim Nocturn Haven.</p><div class="timeline"><span class="done">Reservasi dibuat</span>{% if object.payment and object.payment.status_pembayaran == 'VERIFIED' %}<span class="done">Pembayaran terverifikasi</span>{% elif object.payment %}<span class="current">Menunggu verifikasi pembayaran</span>{% else %}<span class="current">Menunggu pembayaran</span>{% endif %}{% if object.status_pesanan == 'CANCELLED' %}<span>Reservasi dibatalkan</span>{% elif object.status_pesanan == 'PENDING_PAYMENT' %}<span>Konfirmasi kamar</span>{% else %}<span class="done">Kamar dikonfirmasi</span>{% endif %}</div></aside>
+<div class="nh-page-intro">
+    <div>
+        <p class="nh-kicker">Dibuat {{ object.created_at|date:'d M Y · H:i' }}</p>
+        <h2>{{ object.room.room_type.name }}</h2>
+        <p>Periksa rincian menginap, status pembayaran, dan langkah berikutnya.</p>
+    </div>
+    <div class="nh-intro-badges">
+        <span class="nh-status nh-status-{{ object.status_pesanan|lower }}">{{ object.get_status_pesanan_display }}</span>
+        <span class="nh-status nh-status-{{ object.payment_status_group }}"><span aria-hidden="true"></span>{{ object.payment_status_label }}</span>
+    </div>
+</div>
+
+<div class="nh-detail-layout">
+    <div class="nh-stack">
+        <section class="nh-card nh-detail-hero">
+            <div class="nh-detail-code">
+                <div><p class="nh-kicker">Nomor reservasi</p><h2>{{ object.booking_code }}</h2></div>
+                <span class="nh-room-number">Kamar {{ object.room.number }}</span>
+            </div>
+            <div class="nh-detail-grid">
+                <div><small>Check-in</small><strong>{{ object.tanggal_check_in|date:'d M Y' }}</strong><span>Mulai 14:00</span></div>
+                <div><small>Check-out</small><strong>{{ object.tanggal_check_out|date:'d M Y' }}</strong><span>Sebelum 12:00</span></div>
+                <div><small>Durasi</small><strong>{{ nights }} malam</strong><span>{{ object.jumlah_tamu }} tamu</span></div>
+                <div><small>Tipe kamar</small><strong>{{ object.room.room_type.name }}</strong><span>Lantai {{ object.room.floor }}</span></div>
+            </div>
+            {% if object.voucher %}
+            <div class="nh-voucher-chip"><span aria-hidden="true">◆</span> Voucher <strong>{{ object.voucher.kode_voucher }}</strong> diterapkan</div>
+            {% endif %}
+        </section>
+
+        <section class="nh-card">
+            <div class="nh-card-heading">
+                <div><p class="nh-kicker">Rincian biaya</p><h2>Transparan sejak awal</h2></div>
+            </div>
+            <dl class="nh-price-list">
+                <div><dt>Kamar · Rp {{ object.room.room_type.price_per_night|rupiah }} × {{ nights }} malam</dt><dd>Rp {{ object.total_harga_dasar|rupiah }}</dd></div>
+                {% if object.diskon_voucher %}
+                <div class="is-discount"><dt>Diskon voucher {{ object.voucher.kode_voucher }}</dt><dd>− Rp {{ object.diskon_voucher|rupiah }}</dd></div>
+                {% endif %}
+                <div><dt>Subtotal</dt><dd>Rp {{ object.subtotal_setelah_diskon|rupiah }}</dd></div>
+                <div><dt>Pajak &amp; layanan (11%)</dt><dd>Rp {{ object.pajak_dan_layanan|rupiah }}</dd></div>
+                <div class="nh-price-total"><dt>Total pembayaran</dt><dd>Rp {{ object.total_biaya_akhir|rupiah }}</dd></div>
+            </dl>
+        </section>
+
+        {% if service_orders %}
+        <section class="nh-card">
+            <div class="nh-card-heading">
+                <div><p class="nh-kicker">Layanan kamar</p><h2>Pesanan room service</h2></div>
+                <a class="nh-text-link" href="{% url 'room_service_portal' %}">Tambah pesanan</a>
+            </div>
+            <div class="nh-order-list">
+                {% for order in service_orders %}
+                <div class="nh-order-row">
+                    <div><strong>#{{ order.pk|stringformat:'04d' }} · {{ order.get_service_type_display }}</strong><small>{{ order.created_at|date:'d M Y · H:i' }}{% if order.special_instructions %} · {{ order.special_instructions|truncatechars:60 }}{% endif %}</small></div>
+                    <div class="nh-order-right"><span class="nh-status nh-status-{% if order.status == 'DELIVERED' %}paid{% elif order.status == 'CANCELLED' %}cancelled{% else %}pending{% endif %}">{{ order.get_status_display }}</span><strong>Rp {{ order.total|rupiah }}</strong></div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    <aside class="nh-stack">
+        <section class="nh-card nh-payment-panel">
+            <div class="nh-card-heading"><div><p class="nh-kicker">Pembayaran</p><h2>Status transaksi</h2></div></div>
+            <div class="nh-payment-state nh-payment-{{ object.payment_status_group }}">
+                <span class="nh-payment-icon" aria-hidden="true">
+                    {% if object.payment_status_group == 'paid' %}
+                    <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+                    {% elif object.payment_status_group == 'failed' %}
+                    <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                    {% else %}
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>
+                    {% endif %}
+                </span>
+                <div><strong>{{ object.payment_status_label }}</strong><small>{% if object.payment %}Metode: {{ object.payment.metode_pembayaran }}{% else %}Tagihan belum dibuat{% endif %}</small></div>
+            </div>
+
+            {% if object.payment %}
+            <dl class="nh-payment-meta">
+                <div><dt>Nominal tagihan</dt><dd>Rp {{ object.payment.amount|rupiah }}</dd></div>
+                {% if object.payment.verified_at %}<div><dt>Diverifikasi</dt><dd>{{ object.payment.verified_at|date:'d M Y · H:i' }}</dd></div>{% endif %}
+                {% if object.payment.refund_requested_at %}<div><dt>Refund diminta</dt><dd>{{ object.payment.refund_requested_at|date:'d M Y' }}</dd></div>{% endif %}
+                {% if object.payment.refunded_at %}<div><dt>Refund selesai</dt><dd>{{ object.payment.refunded_at|date:'d M Y' }}</dd></div>{% endif %}
+            </dl>
+            {% if object.payment.failure_reason %}
+            <p class="nh-payment-reason" role="note">{{ object.payment.failure_reason }}</p>
+            {% endif %}
+            {% if object.payment.bukti_transfer_url %}
+            <a class="nh-text-link" href="{% url 'payment_proof' object.payment.pk %}" target="_blank" rel="noopener">Lihat bukti pembayaran ↗</a>
+            {% endif %}
+            {% endif %}
+
+            {% if can_pay %}
+            <a class="nh-button nh-button-primary nh-button-block" href="{% url 'payment_create' object.pk %}">Lanjutkan Pembayaran →</a>
+            {% elif object.payment_status_group == 'failed' %}
+            <a class="nh-button nh-button-primary nh-button-block" href="{% url 'payment_create' object.pk %}">Unggah ulang bukti</a>
+            {% endif %}
+            <p class="nh-help-text">Verifikasi manual dilakukan pada hari kerja. Simpan bukti transfer sampai status berubah menjadi <strong>Lunas</strong>.</p>
+        </section>
+
+        <section class="nh-card">
+            <div class="nh-card-heading"><div><p class="nh-kicker">Perjalanan reservasi</p><h2>Riwayat status</h2></div></div>
+            <ol class="nh-timeline">
+                <li class="is-done"><span aria-hidden="true"></span><div><strong>Reservasi dibuat</strong><small>{{ object.created_at|date:'d M Y · H:i' }}</small></div></li>
+                <li class="{% if object.payment and object.payment.status_pembayaran != 'UNPAID' %}is-done{% elif object.payment_status_group == 'pending' %}is-current{% endif %}"><span aria-hidden="true"></span><div><strong>Bukti pembayaran</strong><small>{% if object.payment and object.payment.status_pembayaran != 'UNPAID' %}Diterima {{ object.payment.updated_at|date:'d M Y' }}{% else %}Menunggu unggahan{% endif %}</small></div></li>
+                <li class="{% if object.payment_status_group == 'paid' %}is-done{% elif object.payment_status_group == 'failed' %}is-failed{% endif %}"><span aria-hidden="true"></span><div><strong>Pembayaran terverifikasi</strong><small>{% if object.payment_status_group == 'paid' %}Kamar terkonfirmasi{% elif object.payment_status_group == 'failed' %}Perlu tindakan Anda{% else %}Menunggu verifikasi staf{% endif %}</small></div></li>
+                <li class="{% if object.status_pesanan == 'CHECKED_IN' or object.status_pesanan == 'CHECKED_OUT' %}is-done{% elif object.status_pesanan == 'CONFIRMED' %}is-current{% endif %}"><span aria-hidden="true"></span><div><strong>Check-in</strong><small>{% if object.checked_in_at %}{{ object.checked_in_at|date:'d M Y · H:i' }}{% else %}Dijadwalkan {{ object.tanggal_check_in|date:'d M Y' }}{% endif %}</small></div></li>
+                <li class="{% if object.status_pesanan == 'CHECKED_OUT' %}is-done{% endif %}"><span aria-hidden="true"></span><div><strong>Check-out</strong><small>{% if object.checked_out_at %}{{ object.checked_out_at|date:'d M Y · H:i' }}{% else %}Dijadwalkan {{ object.tanggal_check_out|date:'d M Y' }}{% endif %}</small></div></li>
+            </ol>
+        </section>
+
+        <section class="nh-card">
+            <div class="nh-card-heading"><div><p class="nh-kicker">Tindakan</p><h2>Kelola reservasi</h2></div></div>
+            <div class="nh-action-stack">
+                {% if object.can_order_room_service %}
+                <a class="nh-button nh-button-ghost nh-button-block" href="{% url 'room_service_portal' %}">Pesan room service</a>
+                {% endif %}
+                {% if can_review %}
+                <a class="nh-button nh-button-ghost nh-button-block" href="{% url 'review_create' object.pk %}">Berikan ulasan</a>
+                {% endif %}
+                <a class="nh-button nh-button-ghost nh-button-block" href="{% url 'booking_list' %}">Kembali ke daftar</a>
+                {% if object.can_cancel %}
+                <form method="post" action="{% url 'booking_cancel' object.pk %}" onsubmit="return confirm('Batalkan reservasi {{ object.booking_code }}? Tindakan ini tidak dapat dibatalkan.');">
+                    {% csrf_token %}
+                    <button class="nh-button nh-button-danger nh-button-block" type="submit">Batalkan reservasi</button>
+                </form>
+                {% endif %}
+            </div>
+            {% if object.payment_status_group == 'refund' %}
+            <p class="nh-help-text">Pengembalian dana sedang ditangani tim reservasi. Anda akan menerima pembaruan melalui email terdaftar.</p>
+            {% endif %}
+        </section>
+
+        {% if user.is_staff %}
+        <section class="nh-note-card">
+            <strong>Akses staf</strong>
+            <p>Tamu: {{ object.user.get_full_name|default:object.user.email }}. <a href="{% url 'admin:reservations_booking_change' object.pk %}">Buka di admin</a>.</p>
+        </section>
+        {% endif %}
+    </aside>
 </div>
 {% endblock %}

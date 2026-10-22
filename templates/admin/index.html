@@ -1,0 +1,24 @@
+{% extends "admin/index.html" %}
+{% load hotel_admin %}
+
+{% block content %}
+{% admin_metrics as metrics %}
+{% if metrics %}
+<section class="nh-admin-metrics" aria-labelledby="nh-admin-metrics-heading">
+    <header class="nh-admin-metrics-head">
+        <p>Antrian operasional</p>
+        <h2 id="nh-admin-metrics-heading">Perlu tindakan tim</h2>
+    </header>
+    <div class="nh-admin-metric-grid">
+        {% for metric in metrics %}
+        <a class="nh-admin-metric" href="{{ metric.url }}">
+            <strong>{{ metric.value }}</strong>
+            <span>{{ metric.label }}</span>
+            <small>{{ metric.hint }}</small>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{{ block.super }}
+{% endblock %}

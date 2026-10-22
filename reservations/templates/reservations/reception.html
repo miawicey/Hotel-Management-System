@@ -1,52 +1,52 @@
 {% extends 'reservations/base.html' %}
 {% block title %}Resepsionis{% endblock %}
-{% block content %}
-<section class="page-intro"><div><h1>Meja resepsionis</h1><p>Kelola check-in tamu yang sudah terkonfirmasi dan check-out tamu yang sedang menginap. Hari ini {{ today|date:'d M Y' }}.</p></div><span class="step-label">Staf</span></section>
+{% block reservation_body %}
+<section class="page-intro"><div><p class="pub-eyebrow">Meja depan</p><h1>Meja resepsionis</h1><p>Kelola check-in tamu yang sudah terkonfirmasi dan check-out tamu yang sedang menginap. Hari ini {{ today|date:'d M Y' }}.</p></div><span class="step-label">Staf</span></section>
 <div class="reservation-layout">
-    <section class="form-card">
+    <section class="form-card card">
         <div class="form-heading"><span class="form-icon">&#128273;</span><div><h2>Siap check-in</h2><p>{{ arriving|length }} reservasi terkonfirmasi menunggu kedatangan.</p></div></div>
         {% for booking in arriving %}
-        <div class="summary-room" style="padding:16px 0;">
+        <div class="summary-room">
             <div>
                 <span class="summary-label">NH-{{ booking.pk|stringformat:'04d' }} &middot; {{ booking.user.username }}</span>
                 <h3>{{ booking.room }}</h3>
                 <p>{{ booking.tanggal_check_in|date:'d M Y' }} &rarr; {{ booking.tanggal_check_out|date:'d M Y' }} &middot; {{ booking.jumlah_tamu }} tamu</p>
                 {% if booking.tanggal_check_in > today %}<p class="status-pill">Dijadwalkan {{ booking.tanggal_check_in|date:'d M Y' }}</p>{% endif %}
             </div>
-            <div style="text-align:right;">
+            <div class="summary-actions">
                 <form method="post" action="{% url 'reception' %}">{% csrf_token %}
                     <input type="hidden" name="booking_id" value="{{ booking.pk }}">
                     <input type="hidden" name="action" value="check_in">
-                    <button class="button btn btn-danger button-dark" type="submit" {% if booking.tanggal_check_in > today %}disabled{% endif %}>Check-in</button>
+                    <button class="btn btn--primary" type="submit" {% if booking.tanggal_check_in > today %}disabled{% endif %}>Check-in</button>
                 </form>
                 <a class="text-link" href="{% url 'booking_detail' booking.pk %}">Lihat rincian &rarr;</a>
             </div>
         </div>
         {% empty %}
-        <p>Tidak ada reservasi yang menunggu check-in.</p>
+        <p class="side-note">Tidak ada reservasi yang menunggu check-in.</p>
         {% endfor %}
 
         <div class="form-heading" style="margin-top:24px;"><span class="form-icon">&#128682;</span><div><h2>Sedang menginap</h2><p>{{ in_house|length }} tamu saat ini menginap.</p></div></div>
         {% for booking in in_house %}
-        <div class="summary-room" style="padding:16px 0;">
+        <div class="summary-room">
             <div>
                 <span class="summary-label">NH-{{ booking.pk|stringformat:'04d' }} &middot; {{ booking.user.username }}</span>
                 <h3>{{ booking.room }}</h3>
                 <p>{{ booking.tanggal_check_in|date:'d M Y' }} &rarr; {{ booking.tanggal_check_out|date:'d M Y' }} &middot; check-in {{ booking.checked_in_at|date:'d M Y H:i' }}</p>
             </div>
-            <div style="text-align:right;">
+            <div class="summary-actions">
                 <form method="post" action="{% url 'reception' %}">{% csrf_token %}
                     <input type="hidden" name="booking_id" value="{{ booking.pk }}">
                     <input type="hidden" name="action" value="check_out">
-                    <button class="button btn btn-light" type="submit">Check-out</button>
+                    <button class="btn btn--ghost" type="submit">Check-out</button>
                 </form>
                 <a class="text-link" href="{% url 'booking_detail' booking.pk %}">Lihat rincian &rarr;</a>
             </div>
         </div>
         {% empty %}
-        <p>Tidak ada tamu yang sedang menginap.</p>
+        <p class="side-note">Tidak ada tamu yang sedang menginap.</p>
         {% endfor %}
     </section>
-    <aside class="side-card"><p class="eyebrow">Panduan singkat</p><h2>Alur resepsionis.</h2><p>Check-in hanya aktif pada atau setelah tanggal check-in booking. Check-out akan otomatis menandai kamar sebagai Dirty untuk dibersihkan.</p><div class="side-note"><strong>Butuh bantuan?</strong><span>Hubungi tim operasional hotel.</span></div></aside>
+    <aside class="side-card card"><p class="pub-eyebrow">Panduan singkat</p><h2>Alur resepsionis.</h2><p>Check-in hanya aktif pada atau setelah tanggal check-in booking. Check-out akan otomatis menandai kamar sebagai Dirty untuk dibersihkan.</p><div class="side-note"><strong>Butuh bantuan?</strong><span>Hubungi tim operasional hotel.</span></div></aside>
 </div>
 {% endblock %}

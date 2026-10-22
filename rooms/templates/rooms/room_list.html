@@ -1,68 +1,175 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Kamar | Nocturn Haven</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link rel="stylesheet" href="{% static 'dashboard/css/home.css' %}"><link rel="stylesheet" href="{% static 'rooms/css/room-list.css' %}"><link rel="stylesheet" href="{% static 'rooms/css/room-interactions.css' %}">
-</head>
-<body class="room-list-page">
-<header class="site-header"><a class="brand" href="{% url 'home' %}"><img class="brand-logo" src="{% static 'dashboard/images/logo.svg' %}" alt="Nocturn Haven"></a><nav class="main-nav"><a href="{% url 'home' %}">Home</a><a class="active" href="{% url 'room_list' %}">Room &amp; Suites</a><a href="{% url 'home' %}#facilities">Facilities</a><a href="{% url 'home' %}#offers">Offers</a><a href="{% url 'review_list' %}">Ulasan Tamu</a><a href="{% url 'room_service_chat' %}">Room Service</a>{% if user.is_staff %}<a href="{% url 'reception' %}">Resepsionis</a>{% endif %}</nav><div class="header-actions">{% if user.is_authenticated %}<span class="language">Halo, {{ user.username }}</span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="language logout-button" type="submit">Keluar</button></form>{% else %}<a class="language" href="{% url 'login' %}">Masuk</a>{% endif %}<a class="button btn btn-danger button-dark" href="{% url 'booking_create' %}">Pesan Sekarang</a></div></header>
-<main>
-    <section class="room-hero"><div class="room-hero-inner"><p class="eyebrow">Pilihan suites &amp; akomodasi <span></span></p><h1>Pilih Kamar &amp; Akomodasi Anda</h1><p>Temukan ruang yang dirancang dengan detail untuk membuat perjalanan Anda terasa lebih nyaman.</p><div class="view-actions"><button class="button btn btn-danger button-dark" id="editorial-toggle" type="button">▤ &nbsp; Tampilan Editorial</button><button class="button btn btn-light" id="empty-toggle" type="button">⌁ &nbsp; Simulasikan Tanpa Hasil</button></div></div></section>
-    <section class="room-content">
-        {% if availability_error %}<div class="empty-results">{{ availability_error }}</div>{% elif availability_checked and not rooms %}<div class="empty-results">Tidak ada kamar tersedia pada periode yang dipilih.</div>{% endif %}
-        <form class="filter-panel" id="room-filter" method="get"><label><span>Tanggal Masuk (Check-in)</span><input type="date" name="check_in" value="{{ check_in }}"></label><label><span>Tanggal Keluar (Check-out)</span><input type="date" name="check_out" value="{{ check_out }}"></label><label><span>Tamu &amp; Kamar</span><select name="guests"><option value="">Semua</option><option value="1"{% if guests == '1' %} selected{% endif %}>1 Dewasa, 0 Anak</option><option value="2"{% if guests == '2' %} selected{% endif %}>2 Dewasa, 0 Anak</option><option value="3"{% if guests == '3' %} selected{% endif %}>3 Dewasa, 0 Anak</option><option value="4"{% if guests == '4' %} selected{% endif %}>4 Dewasa, 0 Anak</option></select></label><label><span>Kategori Kamar</span><select name="type"><option value="">Semua Kategori Kamar</option>{% for rt in room_types %}<option value="{{ rt.pk }}"{% if selected_type == rt.pk|stringformat:'d' %} selected{% endif %}>{{ rt.name }}</option>{% endfor %}</select></label><div class="range-row"><span>Rentang Tarif per Malam <b>Rp 1.000.000 – Rp 6.000.000 / malam</b></span><small>Gunakan kategori dan kapasitas untuk menyaring kamar yang sesuai.</small></div><div class="capacity-row"><span>Kapasitas Tamu Maksimum</span><button type="button" class="active" data-capacity="all">Semua</button><button type="button" data-capacity="1">1 Tamu</button><button type="button" data-capacity="2">2 Tamu</button><button type="button" data-capacity="3">3 Tamu</button><button type="button" data-capacity="4">4+ Tamu</button><button class="button btn btn-danger button-dark" type="submit">Cari Ketersediaan →</button><button class="reset" type="reset">⟳ Reset Filter</button></div></form>
-        <div class="results-heading"><div><h2>Menampilkan <span id="result-count">{{ room_count }}</span> Kamar Tersedia <span>{% if check_in and check_out %}{{ check_in }} - {{ check_out }}{% else %}Pilih periode menginap{% endif %}</span></h2><p>Tarif pemesanan langsung resmi sudah mencakup sarapan pagi dan akses fasilitas kebugaran.</p></div><label>Urutkan berdasarkan: <select id="room-sort"><option value="recommended">Rekomendasi Pilihan</option><option value="low">Harga Terendah</option><option value="high">Harga Tertinggi</option></select></label></div>
-        <div class="room-results" id="room-results">{% for room in rooms %}<article class="listing-card" data-capacity="{% if forloop.counter == 4 %}4{% elif forloop.counter == 3 %}3{% else %}2{% endif %}" data-price="{{ room.price|cut:'.' }}" data-category="{% if 'Villa' in room.name %}villa{% elif 'Suite' in room.name %}suite{% else %}deluxe{% endif %}"><div class="listing-image"><img src="{{ room.image }}" alt="{{ room.name }}"><span class="availability">● {{ room.badge }}</span><span class="photo-count">▣ 1 / {{ forloop.counter|add:'5' }}</span></div><div class="listing-info"><p class="listing-label">{{ room.label }}</p><h3>{{ room.name }}</h3><div class="chips"><span>⌗ {{ room.size }}</span><span>▱ {{ room.bed }}</span><span>♙ {{ room.capacity }}</span><span>☼ {{ room.view }}</span></div><p class="listing-description">Ruang nyaman dengan desain yang tenang, detail yang dipikirkan, dan layanan hangat untuk setiap tamu.</p><small class="feature-title">FASILITAS UTAMA &amp; KEISTIMEWAAN</small><div class="feature-chips">{% for feature in room.features %}<span>♧ {{ feature }}</span>{% endfor %}</div></div><div class="listing-price"><small>TARIF FLEKSIBEL STANDAR</small><strong>Rp {{ room.price }}<em>/ malam</em></strong><b>Rp {{ room.total }} total 3 malam</b><span>Sudah termasuk pajak &amp; layanan</span><a class="button btn btn-danger button-dark" href="{% url 'booking_create' %}">Pesan Sekarang →</a><a class="button btn btn-light" href="{% url 'room_detail' room.id %}">Lihat Detail</a><small>◷ Gratis pembatalan hingga 48 jam</small></div></article>{% endfor %}<div class="empty-results" id="empty-results" hidden>Tidak ada kamar yang cocok dengan filter saat ini. Ubah filter atau reset untuk melihat semua kamar.</div></div>
-        <div class="room-benefits"><span><b>♢</b><strong>Jaminan Tarif Terbaik</strong><small>Harga resmi langsung tanpa biaya tersembunyi.</small></span><span><b>⌂</b><strong>Pramutamu Pribadi</strong><small>Tim kami siap membantu kebutuhan Anda.</small></span><span><b>◷</b><strong>Check-In Fleksibel</strong><small>Atur waktu kedatangan sesuai perjalanan Anda.</small></span></div>
-    </section>
-</main>
-<footer class="room-footer"><div class="footer-brand"><span class="brand-mark">N</span><strong>NOCTURN<br>HAVEN</strong><p>Kenyamanan tenang dan kemewahan arsitektur<br>hotel modern bersandar tinggi.</p></div><div><small>LOKASI</small><p>Jl. Sibukir Sgma No. 67, Kawasan Sigra</p></div><div><small>PRAMUTAMU &amp; KONTAK</small><p>Pesan: 626767<br>Meja Reservasi: kumuwowo@hotel.com</p></div><div><small>KEBIJAKAN CHECK-IN</small><p>Check-in 14:00 · Check-out 12:00.<br>Perlu lebih awal? Hubungi kami.</p></div><div class="footer-bottom">© 2026 Sistem Manajemen Hotel. Hak cipta dilindungi undang-undang.</div></footer>
+{% extends 'public/base.html' %}
+{% block title %}Kamar &amp; Suite{% endblock %}
+{% block meta_description %}Jelajahi kamar dan suite Nocturn Haven — tarif transparan, kapasitas jelas, dan ketersediaan nyata.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="pub-shell">
+        <p class="pub-eyebrow">Pilihan suites &amp; akomodasi</p>
+        <h1>Pilih Kamar &amp; Akomodasi Anda</h1>
+        <p>Temukan ruang yang dirancang dengan detail untuk membuat perjalanan Anda terasa lebih nyaman.</p>
+    </div>
+</section>
+
+<div class="page-body">
+    <div class="pub-shell">
+        <form class="filter-panel" id="room-filter" method="get" data-reveal>
+            <label class="filter-field">
+                <span>Tanggal masuk (check-in)</span>
+                <input type="date" name="check_in" value="{{ check_in }}">
+            </label>
+            <label class="filter-field">
+                <span>Tanggal keluar (check-out)</span>
+                <input type="date" name="check_out" value="{{ check_out }}">
+            </label>
+            <label class="filter-field">
+                <span>Tamu &amp; kamar</span>
+                <select name="guests">
+                    <option value="">Semua</option>
+                    <option value="1"{% if guests == '1' %} selected{% endif %}>1 Dewasa</option>
+                    <option value="2"{% if guests == '2' %} selected{% endif %}>2 Dewasa</option>
+                    <option value="3"{% if guests == '3' %} selected{% endif %}>3 Dewasa</option>
+                    <option value="4"{% if guests == '4' %} selected{% endif %}>4 Dewasa</option>
+                </select>
+            </label>
+            <label class="filter-field">
+                <span>Kategori kamar</span>
+                <select name="type">
+                    <option value="">Semua kategori</option>
+                    {% for rt in room_types %}<option value="{{ rt.pk }}"{% if selected_type == rt.pk|stringformat:'d' %} selected{% endif %}>{{ rt.name }}</option>{% endfor %}
+                </select>
+            </label>
+            <div class="filter-field filter-field--wide">
+                <span>Kapasitas tamu maksimum</span>
+                <div class="capacity-chips" role="group" aria-label="Filter kapasitas tamu">
+                    <button type="button" class="is-active" data-capacity="all" aria-pressed="true">Semua</button>
+                    <button type="button" data-capacity="1" aria-pressed="false">1 Tamu</button>
+                    <button type="button" data-capacity="2" aria-pressed="false">2 Tamu</button>
+                    <button type="button" data-capacity="3" aria-pressed="false">3 Tamu</button>
+                    <button type="button" data-capacity="4" aria-pressed="false">4+ Tamu</button>
+                </div>
+            </div>
+            <div class="filter-foot">
+                <button class="btn btn--primary" type="submit">Cari Ketersediaan <span class="btn__icon" aria-hidden="true">→</span></button>
+                <a class="btn btn--ghost" href="{% url 'room_list' %}">Reset filter</a>
+                <p class="filter-hint">Tarif langsung sudah termasuk pajak, layanan, dan sarapan.</p>
+            </div>
+        </form>
+
+        <div class="results-head">
+            <div>
+                <h2>Menampilkan <span id="result-count">{{ room_count }}</span> kamar tersedia</h2>
+                <p>{% if check_in and check_out %}Periode {{ check_in }} — {{ check_out }}{% else %}Pilih periode menginap untuk memeriksa ketersediaan nyata.{% endif %}</p>
+            </div>
+            <label class="filter-field">
+                <span>Urutkan berdasarkan</span>
+                <select id="room-sort">
+                    <option value="recommended">Rekomendasi pilihan</option>
+                    <option value="low">Harga terendah</option>
+                    <option value="high">Harga tertinggi</option>
+                </select>
+            </label>
+        </div>
+
+        {% if availability_error %}
+        <div class="alert alert-danger" role="alert">{{ availability_error }}</div>
+        {% elif availability_checked and not rooms %}
+        <div class="alert alert-info" role="alert">Tidak ada kamar tersedia pada periode yang dipilih.</div>
+        {% endif %}
+
+        <div class="listing-stack" id="room-results">
+            {% for room in rooms %}
+            <article class="listing-card" data-capacity="{{ room.capacity_value }}" data-price="{{ room.price_value }}" data-reveal>
+                <div class="listing-media">
+                    <img src="{{ room.image }}" alt="{{ room.type_name }} nomor {{ room.number }}" loading="lazy">
+                    {% if room.is_available %}<span class="availability">● {{ room.badge }}</span>{% else %}<span class="availability" style="color:#92400e">● {{ room.badge }}</span>{% endif %}
+                </div>
+                <div class="listing-body">
+                    <div>
+                        <p class="listing-label">{{ room.label }}</p>
+                        <h3>{{ room.name }}</h3>
+                    </div>
+                    <p class="listing-desc">{{ room.description }}</p>
+                    <div class="chip-row">
+                        <span class="chip">{{ room.size }}</span>
+                        <span class="chip">{{ room.bed }}</span>
+                        <span class="chip">{{ room.view }}</span>
+                    </div>
+                    <small class="feature-title">Fasilitas utama</small>
+                    <div class="chip-row">
+                        {% for feature in room.features %}<span class="chip chip--gold">{{ feature }}</span>{% endfor %}
+                    </div>
+                </div>
+                <div class="listing-price">
+                    <small>Tarif fleksibel standar</small>
+                    <strong class="num">Rp {{ room.price }} <em>/ malam</em></strong>
+                    <span class="total">Harga akhir dihitung saat pemesanan.</span>
+                    <span class="note">◷ Gratis pembatalan hingga 48 jam sebelum kedatangan</span>
+                    <a class="btn btn--primary" href="{% url 'booking_create' %}?room={{ room.id }}">Pesan Sekarang</a>
+                    <a class="btn btn--ghost" href="{% url 'room_detail' room.id %}">Lihat Detail</a>
+                </div>
+            </article>
+            {% endfor %}
+            <div class="empty-results" id="empty-results" hidden>Tidak ada kamar yang cocok dengan filter saat ini. Ubah filter atau reset untuk melihat semua kamar.</div>
+        </div>
+
+        <div class="benefit-band" data-reveal-group>
+            <span data-reveal><i>♢</i><b>Jaminan Tarif Terbaik</b><small>Harga resmi langsung tanpa biaya tersembunyi.</small></span>
+            <span data-reveal><i>⌂</i><b>Pramutamu Pribadi</b><small>Tim kami siap membantu kebutuhan Anda.</small></span>
+            <span data-reveal><i>◷</i><b>Check-In Fleksibel</b><small>Atur waktu kedatangan sesuai perjalanan Anda.</small></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-const resultCards = [...document.querySelectorAll('.listing-card')];
-const resultCount = document.querySelector('#result-count');
-const capacityButtons = [...document.querySelectorAll('[data-capacity]')];
-const categorySelect = document.querySelector('[name="type"]');
-const sortSelect = document.querySelector('#room-sort');
-const results = document.querySelector('#room-results');
-const emptyResults = document.querySelector('#empty-results');
+(function () {
+    'use strict';
+    var resultCards = Array.prototype.slice.call(document.querySelectorAll('.listing-card'));
+    var resultCount = document.querySelector('#result-count');
+    var capacityButtons = Array.prototype.slice.call(document.querySelectorAll('.capacity-chips [data-capacity]'));
+    var sortSelect = document.querySelector('#room-sort');
+    var results = document.querySelector('#room-results');
+    var emptyResults = document.querySelector('#empty-results');
 
-function applyRoomFilters() {
-    const capacity = document.querySelector('[data-capacity].active')?.dataset.capacity || 'all';
-    const visible = resultCards.filter((card) => capacity === 'all' || Number(card.dataset.capacity) <= Number(capacity));
-    resultCards.forEach((card) => { card.hidden = !visible.includes(card); });
-    resultCount.textContent = visible.length;
-    emptyResults.hidden = visible.length !== 0;
-}
+    function activeCapacity() {
+        var active = capacityButtons.filter(function (button) { return button.classList.contains('is-active'); })[0];
+        return active ? active.dataset.capacity : 'all';
+    }
 
-capacityButtons.forEach((button) => button.addEventListener('click', () => {
-    capacityButtons.forEach((item) => item.classList.remove('active'));
-    button.classList.add('active');
-    applyRoomFilters();
-}));
-document.querySelector('#room-filter').addEventListener('reset', () => setTimeout(() => {
-    capacityButtons.forEach((item) => item.classList.toggle('active', item.dataset.capacity === 'all'));
-    if (categorySelect) { categorySelect.selectedIndex = 0; }
-    applyRoomFilters();
-}, 0));
-sortSelect.addEventListener('change', () => {
-    const cards = [...resultCards];
-    cards.sort((a, b) => sortSelect.value === 'low' ? Number(a.dataset.price) - Number(b.dataset.price) : sortSelect.value === 'high' ? Number(b.dataset.price) - Number(a.dataset.price) : resultCards.indexOf(a) - resultCards.indexOf(b));
-    cards.forEach((card) => results.appendChild(card));
-});
-document.querySelector('#editorial-toggle').addEventListener('click', (event) => {
-    document.body.classList.toggle('editorial-mode');
-    event.currentTarget.classList.toggle('active');
-});
-document.querySelector('#empty-toggle').addEventListener('click', (event) => {
-    const showingEmpty = !emptyResults.hidden;
-    resultCards.forEach((card) => { card.hidden = !showingEmpty; });
-    emptyResults.hidden = showingEmpty;
-    resultCount.textContent = showingEmpty ? resultCards.length : 0;
-    event.currentTarget.classList.toggle('active', !showingEmpty);
-});
+    function applyRoomFilters() {
+        var capacity = activeCapacity();
+        var visible = resultCards.filter(function (card) {
+            return capacity === 'all' || Number(card.dataset.capacity) <= Number(capacity);
+        });
+        resultCards.forEach(function (card) { card.hidden = visible.indexOf(card) === -1; });
+        if (resultCount) resultCount.textContent = visible.length;
+        if (emptyResults) emptyResults.hidden = visible.length !== 0;
+    }
+
+    capacityButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            capacityButtons.forEach(function (item) {
+                var selected = item === button;
+                item.classList.toggle('is-active', selected);
+                item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            });
+            applyRoomFilters();
+        });
+    });
+
+    if (sortSelect && results) {
+        sortSelect.addEventListener('change', function () {
+            var ordered = resultCards.slice();
+            ordered.sort(function (a, b) {
+                if (sortSelect.value === 'low') return Number(a.dataset.price) - Number(b.dataset.price);
+                if (sortSelect.value === 'high') return Number(b.dataset.price) - Number(a.dataset.price);
+                return resultCards.indexOf(a) - resultCards.indexOf(b);
+            });
+            ordered.forEach(function (card) { results.appendChild(card); });
+        });
+    }
+})();
 </script>
-</body></html>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'dashboard/guest_base.html' %}
+{% block title %}Profil & Preferensi{% endblock %}
+{% block eyebrow %}Akun Tamu{% endblock %}
+{% block page_title %}Profil &amp; Preferensi{% endblock %}
+{% block content %}
+<div class="nh-page-intro">
+    <div>
+        <p class="nh-kicker">Data pribadi Anda</p>
+        <h2>Kenali Anda lebih dekat.</h2>
+        <p>Kelola identitas, kontak, dan preferensi agar setiap kedatangan terasa lebih personal.</p>
+    </div>
+    <span class="nh-status nh-status-{{ profile.status|lower }}">{{ profile.get_status_display }}</span>
+</div>
+
+{% if form.errors %}
+<div class="nh-alert nh-alert-error" role="alert">
+    <span class="nh-alert-dot" aria-hidden="true"></span>
+    <span>Ada data yang perlu diperiksa. Lihat pesan di bawah setiap kolom.</span>
+</div>
+{% endif %}
+
+<div class="nh-profile-layout">
+    <form class="nh-card nh-form-card" method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="nh-alert nh-alert-error" role="alert">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+
+        <section aria-labelledby="personal-heading">
+            <div class="nh-card-heading">
+                <div><p class="nh-kicker">01 · Identitas</p><h2 id="personal-heading">Informasi pribadi</h2></div>
+            </div>
+            <div class="nh-form-grid">
+                <label class="nh-field nh-field-full">
+                    <span>{{ form.full_name.label }}</span>
+                    {{ form.full_name }}
+                    {% if form.full_name.errors %}<small class="nh-field-error" role="alert">{{ form.full_name.errors|striptags }}</small>{% endif %}
+                </label>
+                <label class="nh-field">
+                    <span>{{ form.email.label }}</span>
+                    {{ form.email }}
+                    {% if form.email.errors %}<small class="nh-field-error" role="alert">{{ form.email.errors|striptags }}</small>{% endif %}
+                </label>
+                <label class="nh-field">
+                    <span>{{ form.phone_number.label }}</span>
+                    {{ form.phone_number }}
+                    {% if form.phone_number.errors %}<small class="nh-field-error" role="alert">{{ form.phone_number.errors|striptags }}</small>{% endif %}
+                </label>
+                <label class="nh-field">
+                    <span>{{ form.date_of_birth.label }}</span>
+                    {{ form.date_of_birth }}
+                    {% if form.date_of_birth.errors %}<small class="nh-field-error" role="alert">{{ form.date_of_birth.errors|striptags }}</small>{% endif %}
+                </label>
+                <label class="nh-field nh-field-full">
+                    <span>{{ form.address.label }}</span>
+                    {{ form.address }}
+                    {% if form.address.errors %}<small class="nh-field-error" role="alert">{{ form.address.errors|striptags }}</small>{% endif %}
+                </label>
+            </div>
+        </section>
+
+        <section aria-labelledby="preferences-heading">
+            <div class="nh-card-heading nh-section-gap">
+                <div><p class="nh-kicker">02 · Preferensi</p><h2 id="preferences-heading">Pengalaman menginap</h2></div>
+            </div>
+            <div class="nh-form-grid">
+                <label class="nh-field">
+                    <span>{{ form.preferred_language.label }}</span>
+                    {{ form.preferred_language }}
+                    {% if form.preferred_language.errors %}<small class="nh-field-error" role="alert">{{ form.preferred_language.errors|striptags }}</small>{% endif %}
+                </label>
+                <label class="nh-check-row">
+                    {{ form.marketing_opt_in }}
+                    <span><strong>Kirimkan penawaran eksklusif</strong><small>Saya bersedia menerima informasi promo dan acara Nocturn Haven.</small></span>
+                </label>
+            </div>
+        </section>
+
+        <div class="nh-form-footer">
+            <a class="nh-text-link" href="{% url 'guest_dashboard' %}">← Kembali ke ringkasan</a>
+            <button class="nh-button nh-button-primary" type="submit">Simpan Perubahan</button>
+        </div>
+    </form>
+
+    <aside class="nh-stack">
+        <section class="nh-card nh-profile-summary">
+            <span class="nh-avatar nh-avatar-large" aria-hidden="true">{{ profile.initials }}</span>
+            <h2>{% firstof profile.display_name user.email user.username %}</h2>
+            <p>{{ user.email }}</p>
+            <span class="nh-status nh-status-{% if profile.role == 'GUEST' %}paid{% else %}pending{% endif %}">{{ profile.get_role_display }}</span>
+            <div class="nh-profile-stats">
+                <span><strong>{{ booking_count }}</strong><small>Reservasi</small></span>
+                <span><strong>{{ upcoming_count }}</strong><small>Mendatang</small></span>
+                <span><strong>{{ completed_count }}</strong><small>Selesai</small></span>
+            </div>
+            <div class="nh-profile-meta">
+                <span><small>Member sejak</small><strong>{{ member_since|date:'d M Y' }}</strong></span>
+                <span><small>Login terakhir</small><strong>{% if last_login %}{{ last_login|date:'d M Y · H:i' }}{% else %}Baru pertama kali{% endif %}</strong></span>
+            </div>
+        </section>
+
+        <section class="nh-card">
+            <div class="nh-card-heading"><div><p class="nh-kicker">Keamanan</p><h2>Kata sandi</h2></div></div>
+            <p class="nh-help-text">Gunakan kata sandi unik dan perbarui secara berkala untuk melindungi data reservasi Anda.</p>
+            <a class="nh-button nh-button-ghost nh-button-block" href="{% url 'password_change' %}">Ubah kata sandi</a>
+        </section>
+
+        <section class="nh-note-card">
+            <strong>Privasi Anda terlindungi</strong>
+            <p>Data pribadi hanya digunakan untuk operasional reservasi dan layanan tamu. Bukti pembayaran hanya dapat diakses oleh Anda dan staf hotel.</p>
+        </section>
+    </aside>
+</div>
+{% endblock %}

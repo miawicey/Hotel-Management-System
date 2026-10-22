@@ -1,9 +1,11 @@
-#buat di styling ui nya sama mutia
-
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
+
 from rooms.models import Room
+
 from .models import Booking, Payment, PromoVoucher, Review
+
 
 class BookingForm(forms.ModelForm):
     class Meta:
@@ -52,21 +54,80 @@ class BookingForm(forms.ModelForm):
                 )
         return cleaned_data
 
+
 class PaymentForm(forms.ModelForm):
+    """Payment proof upload form.
+
+    The amount is deliberately not editable here: the service layer always
+    uses the booking total, so a tampered POST cannot change the invoice.
+    """
+
     class Meta:
         model = Payment
         fields = ['metode_pembayaran', 'bukti_transfer_url']
         widgets = {
-            'metode_pembayaran': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contoh: Transfer Bank'}),
-            'bukti_transfer_url': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'metode_pembayaran': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Contoh: Transfer Bank BCA',
+                'maxlength': 30,
+            }),
+            'bukti_transfer_url': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/jpeg,image/png,image/webp',
+            }),
         }
+        help_texts = {
+            'bukti_transfer_url': 'Format JPG, PNG, atau WEBP. Maksimal 5 MB.',
+        }
+
+    def clean_bukti_transfer_url(self):
+        proof = self.cleaned_data.get('bukti_transfer_url')
+        if not proof or not hasattr(proof, 'size'):
+            return proof
+        max_mb = getattr(settings, 'PAYMENT_PROOF_MAX_MB', 5)
+        if proof.size > max_mb * 1024 * 1024:
+            raise ValidationError(f'Ukuran bukti pembayaran maksimal {max_mb} MB.')
+        content_type = getattr(proof, 'content_type', '')
+        allowed = getattr(settings, 'PAYMENT_ALLOWED_PROOF_TYPES', (
+            'image/jpeg', 'image/png', 'image/webp',
+        ))
+        if content_type and content_type not in allowed:
+            raise ValidationError('Format bukti pembayaran harus JPG, PNG, atau WEBP.')
+        return proof
+
+    def clean_metode_pembayaran(self):
+        value = self.cleaned_data['metode_pembayaran'].strip()
+        if not value:
+            raise ValidationError('Pilih metode pembayaran Anda.')
+        return value
 
 
 class ReviewForm(forms.ModelForm):
+    """Rating is a five-star radio group instead of a bare number input."""
+
+    RATING_CHOICES = [
+        (5, '5 bintang'),
+        (4, '4 bintang'),
+        (3, '3 bintang'),
+        (2, '2 bintang'),
+        (1, '1 bintang'),
+    ]
+
+    rating = forms.TypedChoiceField(
+        choices=RATING_CHOICES,
+        coerce=int,
+        label='Rating',
+        widget=forms.RadioSelect,
+        error_messages={'required': 'Pilih rating bintang 1 sampai 5.'},
+    )
+
     class Meta:
         model = Review
         fields = ['rating', 'comment']
         widgets = {
-            'rating': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5}),
-            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+            'comment': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 6,
+                'placeholder': 'Apa yang membuat menginap Anda berkesan?',
+            }),
         }

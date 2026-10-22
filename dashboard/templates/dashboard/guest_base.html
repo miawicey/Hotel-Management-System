@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Portal Tamu{% endblock %} | Nocturn Haven</title>
+    <meta name="theme-color" content="#4b0d16">
+    <link rel="icon" type="image/svg+xml" href="{% static 'dashboard/images/logo.svg' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Async webfonts: never block rendering or the deferred site scripts. -->
+    <link rel="stylesheet" media="print" onload="this.media='all'; this.onload=null" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"></noscript>
+    <link rel="stylesheet" href="{% static 'dashboard/css/guest-portal.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="nh-portal">
+    <a class="nh-skip-link" href="#portal-content">Lewati ke konten utama</a>
+    <div class="nh-portal-shell">
+        <aside class="nh-sidebar" aria-label="Navigasi portal tamu">
+            <a class="nh-sidebar-brand" href="{% url 'home' %}" aria-label="Nocturn Haven — beranda">
+                <span class="nh-brand-mark" aria-hidden="true">N</span>
+                <span class="nh-brand-copy"><strong>NOCTURN</strong><small>HAVEN</small></span>
+            </a>
+            <p class="nh-sidebar-label">Manajemen Reservasi</p>
+            <nav class="nh-sidebar-nav">
+                <a href="{% url 'guest_dashboard' %}" class="{% if active_section == 'dashboard' %}is-active{% endif %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.7 12 3l9 7.7v9.1a1.2 1.2 0 0 1-1.2 1.2H4.2A1.2 1.2 0 0 1 3 19.8v-9.1Z"/><path d="M9.2 21v-6.4h5.6V21"/></svg>
+                    <span>Ringkasan</span>
+                </a>
+                <a href="{% url 'booking_list' %}" class="{% if active_section == 'bookings' %}is-active{% endif %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 6V4m8 2V4"/></svg>
+                    <span>Pemesanan Saya</span>
+                </a>
+                <a href="{% url 'room_service_portal' %}" class="{% if active_section == 'room_service' %}is-active{% endif %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17h16M6 17a6 6 0 0 1 12 0M12 7V5m-5.6 2.4L5 6m14 1.4L19 6"/></svg>
+                    <span>Room Service</span>
+                </a>
+                <a href="{% url 'profile' %}" class="{% if active_section == 'profile' %}is-active{% endif %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+                    <span>Profil &amp; Preferensi</span>
+                </a>
+                <a href="{% url 'review_list' %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.9L12 3.5Z"/></svg>
+                    <span>Ulasan Tamu</span>
+                </a>
+            </nav>
+            <div class="nh-sidebar-divider" aria-hidden="true"></div>
+            <nav class="nh-sidebar-nav nh-sidebar-secondary" aria-label="Jelajahi hotel">
+                <a href="{% url 'room_list' %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M2 21h20"/><path d="M8 7h3v3H8zm5 0h3v3h-3zm-5 5h3v3H8zm5 0h3v3h-3z"/></svg>
+                    <span>Kamar &amp; Suite</span>
+                </a>
+                <a href="mailto:hello@nocturnhaven.test">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-8.5 8.5H5l-2 2v-6.2A8.5 8.5 0 1 1 21 12Z"/><path d="M8 10h8m-8 4h5"/></svg>
+                    <span>Hubungi Concierge</span>
+                </a>
+                {% if user.is_staff %}
+                <a href="{% url 'reception' %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V9l7-6 7 6v12M9 21v-6h6v6"/></svg>
+                    <span>Meja Resepsionis</span>
+                </a>
+                <a href="{% url 'admin:index' %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    <span>Admin Hotel</span>
+                </a>
+                {% endif %}
+            </nav>
+            <div class="nh-sidebar-user">
+                <span class="nh-avatar" aria-hidden="true">{% if profile %}{{ profile.initials }}{% else %}{{ user.username|slice:":2"|upper }}{% endif %}</span>
+                <span class="nh-user-copy">
+                    <strong>{% firstof user.get_full_name user.email user.username %}</strong>
+                    <small>{% if user.is_staff %}Tim Hotel{% else %}Tamu Terhormat{% endif %}</small>
+                </span>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="nh-logout" type="submit" aria-label="Keluar dari akun">Keluar</button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="nh-portal-main">
+            <header class="nh-topbar">
+                <div class="nh-topbar-title">
+                    <p class="nh-eyebrow">{% block eyebrow %}Portal Tamu{% endblock %}</p>
+                    <h1>{% block page_title %}Nocturn Haven{% endblock %}</h1>
+                </div>
+                <div class="nh-topbar-actions">
+                    <a class="nh-button nh-button-ghost" href="{% url 'room_list' %}">Jelajahi Kamar</a>
+                    <a class="nh-button nh-button-primary" href="{% url 'booking_create' %}">Pesan Kamar</a>
+                </div>
+            </header>
+
+            <main id="portal-content" class="nh-content" tabindex="-1">
+                {% if messages %}
+                <div class="nh-messages" aria-live="polite">
+                    {% for message in messages %}
+                    <div class="nh-alert nh-alert-{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">
+                        <span class="nh-alert-dot" aria-hidden="true"></span>
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </main>
+
+            <footer class="nh-portal-footer">
+                <span>© {% now "Y" %} Nocturn Haven · Hospitality Management</span>
+                <span>Butuh bantuan? <a href="mailto:hello@nocturnhaven.test">hello@nocturnhaven.test</a></span>
+            </footer>
+        </div>
+    </div>
+    {% block extra_js %}{% endblock %}
+    <script src="{% static 'js/vendor/lenis.min.js' %}" defer></script>
+    <script src="{% static 'js/site.js' %}" defer></script>
+</body>
+</html>

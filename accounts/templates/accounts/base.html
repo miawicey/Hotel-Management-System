@@ -1,20 +1,16 @@
+{% extends 'public/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Akun{% endblock %} | Sistem Manajemen Hotel</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'dashboard/css/home.css' %}">
-    <link rel="stylesheet" href="{% static 'accounts/css/auth.css' %}">
-</head>
-<body class="auth-page">
-    <header class="auth-topbar"><a class="auth-back" href="{% url 'home' %}"><span>&lt;-</span> Kembali ke Beranda Hotel</a><span class="portal-badge"><i></i> PORTAL TAMU</span></header>
-    <main class="auth-main"><section class="auth-card">{% block content %}{% endblock %}</section></main>
-    <footer class="auth-footer">Butuh bantuan mendesak saat check-in? Hubungi Resepsionis di +62 (21) 5000-999</footer>
-</body>
-</html>
+{% block body_class %}auth-page{% endblock %}
+{% block content %}
+<section class="auth-shell">
+    <div class="auth-main">
+        <div class="auth-card" data-reveal>
+            <div class="auth-brand">
+                <img class="auth-logo" src="{% static 'dashboard/images/logo.svg' %}" alt="">
+                <span><strong>NOCTURN</strong><small>HAVEN</small></span>
+            </div>
+            {% block auth_content %}{% endblock %}
+        </div>
+    </div>
+</section>
+{% endblock %}

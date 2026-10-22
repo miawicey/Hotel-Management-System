@@ -1,0 +1,22 @@
+{% comment %}
+Review card used by the Ulasan Tamu wall and the room detail page.
+Usage: {% include 'public/_review_card.html' with review=review %}
+{% endcomment %}
+<article class="review-card card" data-reveal>
+    <div class="review-card__head">
+        <span class="avatar" aria-hidden="true">{{ review.initials }}</span>
+        <div class="review-card__who">
+            <strong>{{ review.display_name }}</strong>
+            <small>{{ review.booking.room.room_type.name }} · Kamar {{ review.booking.room.number }}</small>
+        </div>
+        <div class="review-card__rating">
+            {% include 'public/_stars.html' with value=review.rating %}
+            <small>{{ review.created_at|date:"F Y" }}</small>
+        </div>
+    </div>
+    {% if review.comment %}<blockquote>{{ review.comment }}</blockquote>{% endif %}
+    <footer>
+        <span class="chip chip--gold">Tamu terverifikasi</span>
+        <span>{{ review.booking.tanggal_check_in|date:"d M Y" }} — {{ review.booking.tanggal_check_out|date:"d M Y" }}</span>
+    </footer>
+</article>

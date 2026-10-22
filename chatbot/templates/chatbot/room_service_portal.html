@@ -1,0 +1,444 @@
+{% extends 'dashboard/guest_base.html' %}
+{% load hotel_ui %}
+{% load room_service %}
+{% load static %}
+{% block title %}In-Room Dining{% endblock %}
+{% block eyebrow %}Layanan Kamar{% endblock %}
+{% block page_title %}In-Room Dining{% endblock %}
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+<link rel="stylesheet" href="{% static 'chatbot/css/room-service.css' %}">
+{% endblock %}
+{% block content %}
+<section class="nh-rs-hero">
+    <div class="nh-rs-hero-copy">
+        <p class="nh-kicker">The Grand Dining · Nocturn Haven</p>
+        <h2>Malam Anda,<br>disajikan dengan tenang.</h2>
+        <p>Dari hidangan hangat dapur utama hingga minuman signature, pilih cara menikmatinya: diantar ke pintu kamar atau disajikan di restoran hotel.</p>
+        <div class="nh-rs-hero-meta">
+            <span class="nh-rs-hero-chip">Dapur 06.00–23.00</span>
+            <span class="nh-rs-hero-chip">Minuman 24 jam</span>
+            <span class="nh-rs-hero-chip">{{ menu_stats.total }} pilihan menu</span>
+            <span class="nh-rs-hero-chip">{{ menu_stats.recommended }} rekomendasi chef</span>
+        </div>
+    </div>
+    <aside class="nh-rs-stay-card" aria-label="Ringkasan stay Anda">
+        {% if primary_stay %}
+        <div class="nh-rs-stay-head">
+            <span class="nh-rs-stay-mark" aria-hidden="true">N</span>
+            <div>
+                <p class="nh-kicker">Stay Anda</p>
+                <strong>{{ primary_stay.booking_code }}</strong>
+            </div>
+            <span class="nh-rs-badge nh-rs-badge-{{ primary_stay.payment_status_group }}">{{ primary_stay.get_status_pesanan_display }}</span>
+        </div>
+        <p class="nh-rs-stay-room">{{ primary_stay.room.room_type.name }} <span aria-hidden="true">·</span> Kamar {{ primary_stay.room.number }}</p>
+        <div class="nh-rs-stay-dates">
+            <div><small>Check-in</small><strong>{{ primary_stay.tanggal_check_in|date:'d M Y' }}</strong></div>
+            <span class="nh-rs-stay-arrow" aria-hidden="true">→</span>
+            <div><small>Check-out</small><strong>{{ primary_stay.tanggal_check_out|date:'d M Y' }}</strong></div>
+        </div>
+        {% if eligible_stay_count > 1 %}
+        <p class="nh-rs-stay-note">{{ eligible_stay_count }} reservasi aktif — pilih salah satu di formulir pesanan.</p>
+        {% else %}
+        <p class="nh-rs-stay-note">Pesanan akan dihubungkan otomatis ke reservasi ini.</p>
+        {% endif %}
+        {% else %}
+        <div class="nh-rs-stay-head">
+            <span class="nh-rs-stay-mark" aria-hidden="true">N</span>
+            <div><p class="nh-kicker">Stay Anda</p><strong>Belum ada reservasi</strong></div>
+        </div>
+        <p class="nh-rs-stay-note">Room service aktif setelah reservasi terkonfirmasi. Anda tetap dapat berkonsultasi dengan concierge AI.</p>
+        <a class="nh-button nh-button-primary" href="{% url 'booking_create' %}">Buat reservasi</a>
+        {% endif %}
+    </aside>
+</section>
+
+{% if eligible_stay_count %}
+<form method="post" action="{% url 'room_service_portal' %}" class="nh-rs-form" id="room-service-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="nh-alert nh-alert-error nh-rs-form-alert" role="alert">
+        <span class="nh-alert-dot" aria-hidden="true"></span>
+        <span>{{ form.non_field_errors|striptags }}</span>
+    </div>
+    {% endif %}
+
+    <div class="nh-rs-layout">
+        <div class="nh-rs-main">
+            {% if recommended_items %}
+            <section class="nh-rs-featured" data-featured-section aria-labelledby="chef-picks-heading">
+                <div class="nh-rs-section-head">
+                    <div>
+                        <p class="nh-kicker">Rekomendasi Chef</p>
+                        <h2 id="chef-picks-heading">Pilihan malam ini</h2>
+                        <p>Hidangan yang paling sering dipesan tamu dan menjadi favorit dapur kami.</p>
+                    </div>
+                    <span class="nh-rs-section-mark" aria-hidden="true">01</span>
+                </div>
+                <div class="nh-rs-featured-rail">
+                    {% for item in recommended_items %}
+                    <article class="nh-rs-feature-card" data-featured-item data-name="{{ item.name|lower }}" data-desc="{{ item.description|lower }}">
+                        <div class="nh-rs-feature-media">
+                            {% if item.image_url %}
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy" decoding="async" width="900" height="600">
+                            {% endif %}
+                            <span class="nh-rs-feature-tag">Chef's pick</span>
+                        </div>
+                        <div class="nh-rs-feature-body">
+                            <div class="nh-rs-feature-title">
+                                <h3>{{ item.name }}</h3>
+                                <span>Rp {{ item.price|rupiah }}</span>
+                            </div>
+                            <p>{{ item.description|truncatechars:96 }}</p>
+                            <div class="nh-rs-feature-foot">
+                                <span class="nh-rs-prep">±{{ item.prep_minutes }} menit</span>
+                                <button class="nh-rs-add" type="button" data-add-item="{{ item.pk }}" data-add-name="{{ item.name }}">
+                                    Tambah <span aria-hidden="true">+</span>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="nh-card nh-rs-menu-card" aria-labelledby="menu-heading">
+                <div class="nh-rs-menu-head">
+                    <div>
+                        <p class="nh-kicker">Menu lengkap</p>
+                        <h2 id="menu-heading">Makanan &amp; minuman</h2>
+                    </div>
+                    <span class="nh-rs-menu-count">{{ menu_stats.total }} pilihan tersedia</span>
+                </div>
+
+                <div class="nh-rs-toolbar">
+                    <label class="nh-rs-search" for="menu-search">
+                        <span class="nh-visually-hidden">Cari menu</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+                        <input id="menu-search" type="search" placeholder="Cari hidangan, bahan, atau minuman…" autocomplete="off" data-menu-search>
+                    </label>
+                    <div class="nh-rs-filter-groups" role="group" aria-label="Filter kategori menu">
+                        <button type="button" class="is-active" data-filter-group="all" aria-pressed="true">Semua <span>{{ menu_stats.total }}</span></button>
+                        <button type="button" data-filter-group="recommended" aria-pressed="false">Rekomendasi <span>{{ menu_stats.recommended }}</span></button>
+                        {% for group in menu_groups %}
+                        <button type="button" data-filter-group="{{ group.key }}" aria-pressed="false">{{ group.label }} <span>{{ group.item_count }}</span></button>
+                        {% endfor %}
+                    </div>
+                    <div class="nh-rs-filter-subgroups" data-filter-subgroups role="group" aria-label="Filter subkategori" hidden>
+                        <button type="button" class="is-active" data-filter-sub="all" aria-pressed="true">Semua</button>
+                        {% for group in menu_groups %}
+                        {% for subgroup in group.subgroups %}
+                        <button type="button" data-filter-sub="{{ subgroup.key }}" data-parent-group="{{ group.key }}" aria-pressed="false">{{ subgroup.label }} <span>{{ subgroup.item_count }}</span></button>
+                        {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <p class="nh-help-text nh-rs-menu-empty" data-menu-empty hidden>Tidak ada menu yang cocok. Coba kata kunci atau kategori lain.</p>
+
+                {% for group in menu_groups %}
+                <section class="nh-rs-menu-group" data-menu-group="{{ group.key }}" aria-labelledby="group-{{ group.key }}">
+                    <div class="nh-rs-group-head">
+                        <div>
+                            <p class="nh-kicker">{{ forloop.counter|stringformat:'02d' }} · {{ group.label }}</p>
+                            <h2 id="group-{{ group.key }}">{{ group.label }}</h2>
+                            <p>{{ group.description }}</p>
+                        </div>
+                        <span>{{ group.item_count }} pilihan</span>
+                    </div>
+
+                    {% for subgroup in group.subgroups %}
+                    <div class="nh-rs-subgroup" data-menu-section data-parent-group="{{ group.key }}" data-subcategory="{{ subgroup.key }}">
+                        <div class="nh-rs-subgroup-head">
+                            <h3>{{ subgroup.label }}</h3>
+                            <span>{{ subgroup.item_count }}</span>
+                        </div>
+                        <div class="nh-rs-grid">
+                            {% for item in subgroup.items %}
+                            {% with field=form|quantity_field:item.pk %}
+                            <article class="nh-rs-card" data-menu-card data-parent-group="{{ group.key }}" data-subcategory="{{ subgroup.key }}" data-recommended="{{ item.is_recommended|yesno:'true,false' }}" data-search="{{ item.name|lower }} {{ item.description|lower }} {{ group.label|lower }} {{ subgroup.label|lower }}{% if item.is_recommended %} rekomendasi chef{% endif %}{% if item.is_spicy %} pedas spicy{% endif %}{% if item.is_vegetarian %} vegetarian{% endif %}">
+                                <div class="nh-rs-card-media">
+                                    {% if item.image_url %}
+                                    <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy" decoding="async" width="900" height="600">
+                                    {% endif %}
+                                    <div class="nh-rs-card-badges">
+                                        {% if item.is_recommended %}<span class="nh-rs-tag nh-rs-tag-chef">Chef's pick</span>{% endif %}
+                                        {% if item.is_spicy %}<span class="nh-rs-tag nh-rs-tag-spicy">Pedas</span>{% endif %}
+                                        {% if item.is_vegetarian %}<span class="nh-rs-tag nh-rs-tag-veg">Vegetarian</span>{% endif %}
+                                    </div>
+                                </div>
+                                <div class="nh-rs-card-body">
+                                    <div class="nh-rs-card-title">
+                                        <h4>{{ item.name }}</h4>
+                                        <span class="nh-rs-price">Rp {{ item.price|rupiah }}</span>
+                                    </div>
+                                    <p class="nh-rs-card-desc">{{ item.description }}</p>
+                                    <div class="nh-rs-card-meta">
+                                        <span class="nh-rs-prep">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+                                            ±{{ item.prep_minutes }} mnt
+                                        </span>
+                                        <span class="nh-rs-card-cat">{{ subgroup.label }}</span>
+                                    </div>
+                                    <div class="nh-rs-card-foot">
+                                        <span class="nh-rs-card-label">Jumlah</span>
+                                        <div class="nh-rs-stepper" data-stepper>
+                                            <button type="button" data-step="-1" aria-label="Kurangi {{ item.name }}">−</button>
+                                            {{ field }}
+                                            <button type="button" data-step="1" aria-label="Tambah {{ item.name }}">+</button>
+                                        </div>
+                                    </div>
+                                    {% if field.errors %}
+                                    <small class="nh-field-error" role="alert">{{ field.errors|striptags }}</small>
+                                    {% endif %}
+                                </div>
+                            </article>
+                            {% endwith %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endfor %}
+            </section>
+        </div>
+
+        <aside class="nh-rs-side">
+            <section class="nh-card nh-rs-order-panel" aria-labelledby="order-heading">
+                <div class="nh-rs-order-head">
+                    <div>
+                        <p class="nh-kicker">02 · Konfirmasi</p>
+                        <h2 id="order-heading">Detail pesanan</h2>
+                    </div>
+                    <span class="nh-rs-order-step">Terakhir</span>
+                </div>
+
+                <fieldset class="nh-rs-fieldset">
+                    <legend>{{ form.fulfillment.label }}</legend>
+                    <div class="nh-rs-choices">
+                        {% for choice in form.fulfillment %}
+                        <label class="nh-rs-choice" data-fulfillment-choice="{{ choice.data.value }}">
+                            {{ choice.tag }}
+                            <span class="nh-rs-choice-icon" aria-hidden="true">
+                                {% if choice.data.value == 'DELIVERY' %}
+                                <svg viewBox="0 0 24 24"><path d="M4 17h16M6 17a6 6 0 0 1 12 0M12 7V5m-5.6 2.4L5 6m14 1.4L19 6"/></svg>
+                                {% else %}
+                                <svg viewBox="0 0 24 24"><path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8M7 7h4M17 3c-1.7 2-2.5 4.4-2.5 7H17V3Zm0 7v11"/></svg>
+                                {% endif %}
+                            </span>
+                            <span class="nh-rs-choice-copy">
+                                <strong>{{ choice.choice_label }}</strong>
+                                <small>{% if choice.data.value == 'DELIVERY' %}Diantar hangat ke pintu kamar Anda.{% else %}Ambil atau nikmati di The Grand Dining &amp; Lounge.{% endif %}</small>
+                            </span>
+                            <span class="nh-rs-choice-check" aria-hidden="true"></span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.fulfillment.errors %}<small class="nh-field-error" role="alert">{{ form.fulfillment.errors|striptags }}</small>{% endif %}
+                </fieldset>
+
+                {% if eligible_stay_count == 1 %}
+                <div class="nh-rs-field">
+                    <span>{{ form.booking.label }}</span>
+                    <span class="nh-rs-field-static">
+                        <strong>{{ primary_stay.booking_code }}</strong>
+                        <span>{{ primary_stay.room.room_type.name }} · Kamar {{ primary_stay.room.number }}</span>
+                    </span>
+                    {{ form.booking.as_hidden }}
+                    {% if form.booking.errors %}<small class="nh-field-error" role="alert">{{ form.booking.errors|striptags }}</small>{% endif %}
+                </div>
+                {% else %}
+                <label class="nh-rs-field" for="{{ form.booking.id_for_label }}">
+                    <span>{{ form.booking.label }}</span>
+                    {{ form.booking }}
+                    {% if form.booking.errors %}<small class="nh-field-error" role="alert">{{ form.booking.errors|striptags }}</small>{% endif %}
+                </label>
+                {% endif %}
+
+                <label class="nh-rs-field" for="{{ form.special_instructions.id_for_label }}">
+                    <span>{{ form.special_instructions.label }} <em>opsional</em></span>
+                    {{ form.special_instructions }}
+                    {% if form.special_instructions.errors %}<small class="nh-field-error" role="alert">{{ form.special_instructions.errors|striptags }}</small>{% endif %}
+                </label>
+
+                <p class="nh-rs-fulfillment-note" data-fulfillment-note>
+                    Pesanan akan diantar ke kamar Anda oleh tim room service.
+                </p>
+
+                <div class="nh-rs-cart" aria-live="polite">
+                    <div class="nh-rs-cart-top">
+                        <div><small>Item dipilih</small><strong id="cart-count">0</strong></div>
+                        <div><small>Estimasi siap</small><strong id="cart-eta">—</strong></div>
+                    </div>
+                    <ul class="nh-rs-cart-lines" id="cart-lines"></ul>
+                    <p class="nh-rs-cart-empty" id="cart-empty">Belum ada menu dipilih.</p>
+                    <div class="nh-rs-cart-total">
+                        <small>Perkiraan total</small>
+                        <strong id="cart-total">Rp 0</strong>
+                    </div>
+                </div>
+
+                <div class="nh-rs-secure">
+                    <span class="nh-rs-secure-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                    </span>
+                    <div>
+                        <strong>Harga dihitung di server</strong>
+                        <span>Total final dikonfirmasi dapur saat pesanan diterima.</span>
+                    </div>
+                </div>
+
+                <button class="nh-button nh-button-primary nh-button-block nh-rs-submit" type="submit">
+                    Kirim pesanan ke dapur <span aria-hidden="true">→</span>
+                </button>
+            </section>
+
+            <section class="nh-note-card nh-rs-note">
+                <strong>Jam operasional dapur</strong>
+                <p>Makanan tersedia 06.00–23.00 dan minuman 24 jam. Pesanan di luar jam dapur diproses pada slot berikutnya. Untuk alergi atau permintaan khusus, tuliskan di catatan.</p>
+            </section>
+        </aside>
+    </div>
+</form>
+{% else %}
+<section class="nh-card nh-rs-gate">
+    <span class="nh-rs-gate-mark" aria-hidden="true">N</span>
+    <div class="nh-rs-gate-copy">
+        <p class="nh-kicker">Room service untuk tamu menginap</p>
+        <h2>Meja Anda menunggu.</h2>
+        <p>Fitur ini aktif untuk reservasi yang sedang atau akan menginap. Buat reservasi terlebih dahulu, lalu pesan langsung dari kamar atau nikmati di restoran hotel.</p>
+        <div class="nh-card-actions">
+            <a class="nh-button nh-button-primary" href="{% url 'booking_create' %}">Buat Reservasi</a>
+            <a class="nh-button nh-button-ghost" href="{% url 'room_list' %}">Lihat Kamar</a>
+        </div>
+    </div>
+    <div class="nh-rs-gate-list" aria-label="Cara kerja room service">
+        <div><span>01</span><strong>Pilih menu</strong><small>Rekomendasi chef hingga hidangan favorit.</small></div>
+        <div><span>02</span><strong>Tentukan penyajian</strong><small>Antar ke kamar atau makan di restoran.</small></div>
+        <div><span>03</span><strong>Lacak langsung</strong><small>Status dapur diperbarui otomatis.</small></div>
+    </div>
+</section>
+{% endif %}
+
+<section class="nh-card nh-rs-history" aria-labelledby="tracking-heading">
+    <div class="nh-rs-history-head">
+        <div>
+            <p class="nh-kicker">Live tracking</p>
+            <h2 id="tracking-heading">Pesanan Anda</h2>
+        </div>
+        <span class="nh-rs-live{% if active_order_count %} is-live{% endif %}">
+            <span aria-hidden="true"></span>{% if active_order_count %}Diperbarui otomatis{% else %}Status terakhir{% endif %}
+        </span>
+    </div>
+    <div
+        id="order-tracking-list"
+        data-order-tracking
+        data-endpoint="{{ tracking_endpoint }}"
+        data-has-active="{{ active_order_count|yesno:'true,false' }}"
+    >
+        {% for order in orders %}
+        {% include 'chatbot/_order_tracking.html' with order=order %}
+        {% empty %}
+        <div class="nh-rs-history-empty">
+            <span aria-hidden="true">N</span>
+            <p>Belum ada pesanan room service. Pesanan pertama Anda akan muncul di sini dengan status langsung dari dapur.</p>
+        </div>
+        {% endfor %}
+    </div>
+    <p class="nh-visually-hidden" data-track-status aria-live="polite"></p>
+</section>
+
+<button
+    class="nh-rs-concierge-toggle"
+    type="button"
+    data-concierge-toggle
+    aria-expanded="false"
+    aria-controls="nh-concierge-panel"
+>
+    <span class="nh-rs-concierge-glow" aria-hidden="true"></span>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 9l5.5 1.7-5.5 1.7L12 18l-1.7-5.6L4.8 10.7 10.3 9 12 3.5Z"/><path d="M18.5 16.5 19.2 19l2.5.7-2.5.7-.7 2.5-.7-2.5-2.5-.7 2.5-.7.7-2.5Z"/></svg>
+    <span class="nh-rs-concierge-toggle-copy"><strong>Concierge</strong><small>AI assistant</small></span>
+</button>
+
+<section
+    class="nh-rs-concierge"
+    id="nh-concierge-panel"
+    data-concierge-panel
+    data-chat-endpoint="{% url 'room_service_concierge' %}"
+    data-configured="{{ chat_configured|yesno:'true,false' }}"
+    aria-labelledby="concierge-title"
+    hidden
+>
+    <header class="nh-rs-concierge-head">
+        <span class="nh-rs-concierge-avatar" aria-hidden="true">A</span>
+        <div class="nh-rs-concierge-identity">
+            <strong id="concierge-title">{{ concierge_name }} <span>AI Concierge</span></strong>
+            <small class="nh-rs-concierge-status{% if chat_configured %} is-online{% endif %}">
+                <span aria-hidden="true"></span>{% if chat_configured %}Siap membantu{% else %}Belum dikonfigurasi{% endif %}
+            </small>
+        </div>
+        <button class="nh-rs-icon-button" type="button" data-concierge-reset aria-label="Mulai percakapan baru" title="Mulai percakapan baru">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></svg>
+        </button>
+        <button class="nh-rs-icon-button" type="button" data-concierge-close aria-label="Tutup concierge">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+    </header>
+
+    <div class="nh-rs-chat-messages" data-concierge-messages role="log" aria-live="polite" aria-relevant="additions">
+        <div class="nh-rs-msg is-bot">
+            <span class="nh-rs-msg-avatar" aria-hidden="true">A</span>
+            <div class="nh-rs-msg-bubble">
+                <p>Selamat datang di Nocturn Haven. Saya {{ concierge_name }}, concierge pribadi Anda. Ingin saya rekomendasikan hidangan untuk malam ini, atau membantu memilih minuman?</p>
+            </div>
+        </div>
+        {% for turn in chat_history %}
+        <div class="nh-rs-msg {% if turn.role == 'user' %}is-user{% else %}is-bot{% endif %}">
+            {% if turn.role == 'model' %}<span class="nh-rs-msg-avatar" aria-hidden="true">A</span>{% endif %}
+            <div class="nh-rs-msg-bubble"><p>{{ turn.text }}</p></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="nh-rs-typing" data-concierge-typing hidden aria-label="{{ concierge_name }} sedang menulis">
+        <span></span><span></span><span></span>
+    </div>
+
+    <div class="nh-rs-prompts" data-concierge-suggestions>
+        <button type="button" data-prompt="Rekomendasi menu malam ini untuk saya">Rekomendasi malam ini</button>
+        <button type="button" data-prompt="Apa minuman signature yang harus saya coba?">Minuman signature</button>
+        <button type="button" data-prompt="Bagaimana status pesanan room service saya?">Status pesanan saya</button>
+        <button type="button" data-prompt="Fasilitas hotel apa saja yang buka malam ini?">Fasilitas hotel</button>
+    </div>
+
+    <form class="nh-rs-chat-form" data-concierge-form>
+        {% csrf_token %}
+        <label class="nh-visually-hidden" for="concierge-input">Tulis pesan untuk {{ concierge_name }}</label>
+        <input
+            id="concierge-input"
+            type="text"
+            name="message"
+            maxlength="1000"
+            placeholder="{% if chat_configured %}Tanyakan menu, fasilitas, atau pesanan Anda…{% else %}Concierge AI belum aktif — hubungi resepsionis{% endif %}"
+            autocomplete="off"
+            data-concierge-input
+            {% if not chat_configured %}disabled{% endif %}
+        >
+        <button class="nh-rs-send" type="submit" aria-label="Kirim pesan" {% if not chat_configured %}disabled{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 20 4l-4 16-4-7-8-1Z"/><path d="m12 13 8-9"/></svg>
+        </button>
+    </form>
+
+    {% if not chat_configured and user.is_staff %}
+    <p class="nh-rs-staff-hint">Admin: isi <code>GEMINI_API_KEY</code> di <code>.env</code> lalu restart server.</p>
+    {% else %}
+    <p class="nh-rs-concierge-note">Concierge AI dapat keliru. Untuk kebutuhan mendesak, hubungi resepsionis 24 jam.</p>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'chatbot/js/room-service.js' %}" defer></script>
+{% endblock %}

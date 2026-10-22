@@ -1,16 +1,94 @@
-{% extends 'reservations/base.html' %}
-{% block title %}Pembayaran Reservasi{% endblock %}
+{% extends 'dashboard/guest_base.html' %}
+{% load hotel_ui %}
+{% block title %}Pembayaran {{ booking.booking_code }}{% endblock %}
+{% block eyebrow %}Pembayaran Aman{% endblock %}
+{% block page_title %}Selesaikan Pembayaran{% endblock %}
 {% block content %}
-<section class="page-intro"><div><h1>Selesaikan pembayaran</h1><p>Amankan kamar Anda dengan mengunggah bukti pembayaran.</p></div><span class="step-label">03 <i></i> 03</span></section>
-<div class="reservation-layout">
-    <form class="form-card" method="post" enctype="multipart/form-data">
+<div class="nh-page-intro">
+    <div>
+        <p class="nh-kicker">Reservasi {{ booking.booking_code }}</p>
+        <h2>Amankan kamar Anda.</h2>
+        <p>Unggah bukti transfer agar tim reservasi dapat memverifikasi pembayaran Anda.</p>
+    </div>
+    <span class="nh-status nh-status-{{ booking.payment_status_group }}"><span aria-hidden="true"></span>{{ booking.payment_status_label }}</span>
+</div>
+
+<div class="nh-checkout-layout">
+    <form class="nh-card nh-form-card" method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
-        <div class="form-heading"><span class="form-icon">03</span><div><h2>Konfirmasi pembayaran</h2><p>Pesanan NH-{{ view.kwargs.booking_id|stringformat:'04d' }} menunggu verifikasi.</p></div></div>
-        <label class="field"><span>Metode pembayaran</span>{{ form.metode_pembayaran }}{% if form.metode_pembayaran.errors %}<small class="error-text">{{ form.metode_pembayaran.errors|striptags }}</small>{% endif %}</label>
-        <label class="upload-field"><span>Bukti transfer</span>{{ form.bukti_transfer_url }}<strong>Pilih file bukti pembayaran</strong><small>Format JPG atau PNG, maksimal 5 MB.</small></label>
-        <div class="secure-note"><strong>Transaksi terlindungi</strong><span>Tim kami akan memverifikasi pembayaran secara manual dan mengirimkan konfirmasi.</span></div>
-        <div class="form-footer"><a class="text-link" href="{% url 'booking_detail' view.kwargs.booking_id %}">← Kembali ke detail</a><button class="button btn btn-danger button-dark" type="submit">Kirim Pembayaran <span>→</span></button></div>
+        {% if form.non_field_errors %}
+        <div class="nh-alert nh-alert-error" role="alert"><span class="nh-alert-dot" aria-hidden="true"></span><span>{{ form.non_field_errors|striptags }}</span></div>
+        {% endif %}
+
+        <div class="nh-card-heading">
+            <div><p class="nh-kicker">01 · Konfirmasi</p><h2>Detail pembayaran</h2></div>
+            <span class="nh-step">Langkah 3 dari 3</span>
+        </div>
+
+        <div class="nh-payment-amount">
+            <small>Total yang harus dibayar</small>
+            <strong>Rp {{ booking.total_biaya_akhir|rupiah }}</strong>
+            <span>{{ booking.room.room_type.name }} · {{ booking.durasi_malam }} malam · {{ booking.jumlah_tamu }} tamu</span>
+        </div>
+
+        <label class="nh-field">
+            <span>{{ form.metode_pembayaran.label }}</span>
+            {{ form.metode_pembayaran }}
+            {% if form.metode_pembayaran.errors %}<small class="nh-field-error" role="alert">{{ form.metode_pembayaran.errors|striptags }}</small>{% endif %}
+        </label>
+
+        <label class="nh-upload-field">
+            <span>{{ form.bukti_transfer_url.label }} <em>Opsional untuk demo</em></span>
+            {{ form.bukti_transfer_url }}
+            <strong>Pilih file bukti pembayaran</strong>
+            <small>JPG, PNG, atau WEBP · maksimal 5 MB. Bukti hanya dapat dilihat oleh Anda dan staf hotel.</small>
+            {% if form.bukti_transfer_url.errors %}<small class="nh-field-error" role="alert">{{ form.bukti_transfer_url.errors|striptags }}</small>{% endif %}
+        </label>
+
+        {% if payment and payment.bukti_transfer_url %}
+        <p class="nh-help-text">Bukti sebelumnya sudah tersimpan. <a class="nh-text-link" href="{% url 'payment_proof' payment.pk %}" target="_blank" rel="noopener">Lihat bukti</a>. Unggah file baru hanya jika ingin menggantinya.</p>
+        {% endif %}
+
+        <div class="nh-secure-note">
+            <span class="nh-secure-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            </span>
+            <div><strong>Transaksi terlindungi</strong><span>Nominal dihitung di server dan tidak dapat diubah dari halaman ini. Tim kami memverifikasi pembayaran secara manual.</span></div>
+        </div>
+
+        <div class="nh-form-footer">
+            <a class="nh-text-link" href="{% url 'booking_detail' booking.pk %}">← Kembali ke rincian</a>
+            <button class="nh-button nh-button-primary" type="submit">Kirim Bukti Pembayaran →</button>
+        </div>
     </form>
-    <aside class="side-card payment-side"><p class="eyebrow">Instruksi pembayaran</p><h2>Transfer dengan tenang.</h2><p>Gunakan rekening resmi kami, lalu simpan bukti transfer untuk diunggah di halaman ini.</p><div class="bank-box"><span>Bank Nocturn Haven</span><strong>1234 5678 90</strong><small>a.n. PT Nocturn Haven Hospitality</small></div><div class="side-note"><strong>Butuh bantuan?</strong><span>Tim reservasi siap membantu</span></div></aside>
+
+    <aside class="nh-stack">
+        <section class="nh-card nh-bank-card">
+            <p class="nh-kicker">Instruksi transfer</p>
+            <h2>Bank Nocturn Haven</h2>
+            <p>Transfer sesuai nominal tepat, lalu unggah bukti pada formulir.</p>
+            <div class="nh-bank-account">
+                <span>BCA · 1234 5678 90</span>
+                <strong>a.n. PT Nocturn Haven Hospitality</strong>
+            </div>
+            <dl class="nh-payment-meta">
+                <div><dt>Nominal</dt><dd>Rp {{ booking.total_biaya_akhir|rupiah }}</dd></div>
+                <div><dt>Berita transfer</dt><dd>{{ booking.booking_code }}</dd></div>
+            </dl>
+        </section>
+
+        <section class="nh-card">
+            <div class="nh-card-heading"><div><p class="nh-kicker">Ringkasan</p><h2>{{ booking.booking_code }}</h2></div></div>
+            <div class="nh-summary-line"><span>Check-in</span><strong>{{ booking.tanggal_check_in|date:'d M Y' }}</strong></div>
+            <div class="nh-summary-line"><span>Check-out</span><strong>{{ booking.tanggal_check_out|date:'d M Y' }}</strong></div>
+            <div class="nh-summary-line"><span>Kamar</span><strong>{{ booking.room.number }}</strong></div>
+            <div class="nh-summary-line"><span>Status</span><strong>{{ booking.get_status_pesanan_display }}</strong></div>
+        </section>
+
+        <section class="nh-note-card">
+            <strong>Butuh bantuan?</strong>
+            <p>Hubungi pramutamu di <a href="mailto:hello@nocturnhaven.test">hello@nocturnhaven.test</a> atau resepsionis +62 (21) 5000-999.</p>
+        </section>
+    </aside>
 </div>
 {% endblock %}
