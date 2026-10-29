@@ -4,6 +4,8 @@ from .pricing import get_pricing
 
 
 
+from core.models import TimeStampedModel
+
 class RoomType(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)

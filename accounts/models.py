@@ -1,9 +1,21 @@
 from django.contrib.auth.models import User
 from django.db import models
+<<<<<<< HEAD
 
 
 class GuestProfile(models.Model):
     """Extended guest data that is not part of Django's User model."""
+=======
+
+from core.models import TimeStampedModel
+
+
+class GuestProfile(models.Model):
+    """Extended guest data that is not part of Django's User model.
+    
+    Demonstrates encapsulation via @property for computed values.
+    """
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
 
     ROLE_CHOICES = [
         ('GUEST', 'Guest'),

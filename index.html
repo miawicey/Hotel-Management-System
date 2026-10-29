@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prioritas Penerapan 4 Pilar OOP - Hotel Management System</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-hover: #0f3460;
+            --accent-primary: #e94560;
+            --accent-secondary: #533483;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --border: #2d2d4a;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --info: #2196f3;
+            --code-bg: #0d1117;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        header {
+            background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border-bottom: 2px solid var(--accent-primary);
+            padding: 2rem 0;
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.3);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--accent-primary), #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .sidebar {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+            border: 1px solid var(--border);
+            max-height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+        .sidebar h3 {
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+        .sidebar nav ul {
+            list-style: none;
+        }
+        .sidebar nav li {
+            margin-bottom: 0.4rem;
+        }
+        .sidebar nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        .sidebar nav a:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            padding-left: 1rem;
+        }
+        .sidebar nav a.active {
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            font-weight: 600;
+        }
+        .sidebar .subnav {
+            margin-left: 1rem;
+            margin-top: 0.3rem;
+        }
+        .sidebar .subnav a {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.6rem;
+        }
+        .main {
+            min-width: 0;
+        }
+        section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        section h2 {
+            color: var(--accent-primary);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        section h3 {
+            color: #ff6b6b;
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+            padding-top: 1rem;
+        }
+        section h4 {
+            color: var(--info);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.75rem;
+        }
+        section p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        .priority-box {
+            background: linear-gradient(135deg, rgba(233, 69, 96, 0.2) 0%, rgba(83, 52, 131, 0.2) 100%);
+            border: 2px solid var(--accent-primary);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .priority-box h3 {
+            color: var(--accent-primary);
+            margin-top: 0;
+            padding-top: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .card {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(233, 69, 96, 0.2);
+            border-color: var(--accent-primary);
+        }
+        .card h4 {
+            color: var(--text-primary);
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .card ul {
+            color: var(--text-secondary);
+            margin-left: 1.25rem;
+        }
+        .card li {
+            margin-bottom: 0.5rem;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 0.2rem;
+        }
+        .badge-encap { background: rgba(76, 175, 80, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .badge-inher { background: rgba(33, 150, 243, 0.2); color: var(--info); border: 1px solid var(--info); }
+        .badge-poly { background: rgba(255, 152, 0, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+        .badge-abs { background: rgba(233, 69, 96, 0.2); color: var(--accent-primary); border: 1px solid var(--accent-primary); }
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        thead {
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+        }
+        th {
+            padding: 0.9rem;
+            text-align: left;
+            font-weight: 600;
+            color: white;
+            font-size: 0.9rem;
+        }
+        td {
+            padding: 0.75rem 0.9rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+        }
+        tbody tr:hover {
+            background: var(--bg-hover);
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.82rem;
+            line-height: 1.4;
+        }
+        .code-block pre {
+            margin: 0;
+            color: #e6edf3;
+        }
+        .keyword { color: #ff7b72; }
+        .string { color: #a5d6ff; }
+        .comment { color: #8b949e; }
+        .function { color: #d2a8ff; }
+        .class-name { color: #ffa657; }
+        .decorator { color: #79c0ff; }
+        .highlight {
+            background: rgba(233, 69, 96, 0.1);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+        @media (max-width: 968px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: static;
+                max-height: none;
+            }
+        }
+        @media (max-width: 640px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            section {
+                padding: 1.25rem;
+            }
+            .container {
+                padding: 0 1rem;
+            }
+            .layout {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🎯 Prioritas Implementasi 4 Pilar OOP</h1>
+            <p>Hotel Management System (Nocturn Haven) | Fokus yang Perlu Diberitahu Per Fitur</p>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <h3>📑 Navigasi</h3>
+            <nav>
+                <ul>
+                    <li><a href="#focus-utama" class="active">Focus Utama</a></li>
+                    <li><a href="#prioritas-1">1. Payment + Services</a></li>
+                    <li><a href="#prioritas-2">2. ServiceOrder</a></li>
+                    <li><a href="#prioritas-3">3. Payment Processor</a></li>
+                    <li><a href="#reservations">Reservations Lainnya</a></li>
+                    <li><a href="#chatbot">Chatbot/Room Service</a></li>
+                    <li><a href="#lainnya">Accounts, Rooms, Core</a></li>
+                    <li><a href="#ringkasan">Ringkasan</a></li>
+                </ul>
+            </nav>
+            <h3 style="margin-top: 2rem;">Pilar</h3>
+            <nav>
+                <ul class="subnav">
+                    <li><a href="#prioritas-1">🔒 Encapsulation</a></li>
+                    <li><a href="#prioritas-3">🧬 Inheritance</a></li>
+                    <li><a href="#prioritas-3">🎭 Polymorphism</a></li>
+                    <li><a href="#prioritas-1">🎨 Abstraction</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main">
+            <section id="focus-utama">
+                <h2>🎯 Fokus Utama</h2>
+                <div class="priority-box">
+                    <h3>⚡ Yang Paling Prioritas Untuk Diberitahu</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                        Kalau waktu terbatas saat presentasi/laporan, <strong class="highlight">FOKUS KE 3 INI</strong> karena paling kuat nunjukin keempat pilar OOP.
+                    </p>
+                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                        <div class="card" style="border-left: 3px solid var(--accent-primary);">
+                            <h4>1️⃣ Payment + services.py</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Encapsulation + Abstraction</p>
+                        </div>
+                        <div class="card" style="border-left: 3px solid var(--warning);">
+                            <h4>2️⃣ ServiceOrder.transition_to()</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Encapsulation + Polymorphism</p>
+                        </div>
+                        <div class="card" style="border-left: 3px solid var(--info);">
+                            <h4>3️⃣ BasePaymentProcessor + Subclass</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Inheritance + Polymorphism + Abstraction</p>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
+                        <strong>Kuncinya:</strong> Jangan bilang "semua fitur pakai semua pilar". Tunjukin <strong>pilar mana yang dominan</strong> disertai <strong>nama class/method + lokasi filenya</strong>.
+                    </p>
+                </div>
+            </section>
+
+            <!-- PRIORITAS 1 -->
+            <section id="prioritas-1">
+                <h2>1️⃣ Payment + reservations/services.py</h2>
+                <p style="color: var(--text-secondary);">Paling relevan dengan bisnis hotel. Menunjukkan konsep <strong>Single Gate</strong> untuk mengubah status.</p>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h4>📍 Lokasi</h4>
+                        <ul>
+                            <li><code>reservations/models.py</code> (class Payment)</li>
+                            <li><code>reservations/services.py</code> (service layer)</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>🎯 Pilar Utama</h4>
+                        <div style="margin-top: 0.75rem;">
+                            <span class="badge badge-encap">ENCAPSULATION</span>
+                            <span class="badge badge-abs">ABSTRACTION</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Penjelasan</h3>
+                <ul style="color: var(--text-secondary); margin-left: 1.5rem;">
+                    <li><strong>Encapsulation:</strong> Semua perubahan status pembayaran (<code>UNPAID → PENDING_VERIFICATION → VERIFIED/REJECTED</code>, refund) <span class="highlight">wajib</span> lewat <code>reservations/services.py</code>. Ada <code>__is_verifiable()</code> sebagai <strong>private method</strong>.</li>
+                    <li><strong>Abstraction:</strong> View, Admin, dan Webhook cukup memanggil <code>submit_payment_proof()</code>, <code>verify_payment()</code>, <code>request_refund()</code>, <code>complete_refund()</code>. Mereka <strong>tidak perlu tahu</strong> detail <code>select_for_update()</code>, locking, atau sinkronisasi Booking↔Payment.</li>
+                </ul>
+
+                <h3>Contoh Kode</h3>
+                <div class="code-block">
+<pre><span class="comment"># reservations/models.py</span>
+<span class="keyword">class</span> <span class="class-name">Payment</span>(BaseTransaction):
+    <span class="comment"># ...</span>
+    <span class="keyword">def</span> <span class="function">__is_verifiable</span>(self):
+        <span class="string">"""Private method: hanya bisa diakses dari dalam class ini"""</span>
+        <span class="keyword">return</span> self.status_pembayaran <span class="keyword">in</span> (self.PENDING_VERIFICATION, self.REJECTED)
+
+    <span class="keyword">def</span> <span class="function">verifikasi_pembayaran</span>(self, is_approved: bool, actor=None, reason=<span class="string">''</span>):
+        <span class="keyword">from</span> .services <span class="keyword">import</span> verify_payment
+        <span class="comment"># Wrapper ke service layer (single gate)</span>
+        updated = verify_payment(self, approved=is_approved, actor=actor, reason=reason)
+        <span class="keyword">return</span> updated</pre>
+                </div>
+            </section>
+
+            <!-- PRIORITAS 2 -->
+            <section id="prioritas-2">
+                <h2>2️⃣ Room Service Order - transition_to()</h2>
+                <p style="color: var(--text-secondary);">Sangat mudah dipahami. Menunjukkan <strong>kontrol akses ketat</strong> + <strong>polimorfisme berbasis kondisi</strong>.</p>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h4>📍 Lokasi</h4>
+                        <ul>
+                            <li><code>chatbot/models.py:290-433</code> (class ServiceOrder)</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>🎯 Pilar Utama</h4>
+                        <div style="margin-top: 0.75rem;">
+                            <span class="badge badge-encap">ENCAPSULATION</span>
+                            <span class="badge badge-poly">POLYMORPHISM</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Penjelasan</h3>
+                <ul style="color: var(--text-secondary); margin-left: 1.5rem;">
+                    <li><strong>Encapsulation:</strong> <code>_can_transition()</code> (protected) + <code>transition_to()</code> jadi <span class="highlight">SATU-SATUNYA PINTU</span> untuk mengubah status. Status order <strong>tidak boleh</strong> diubah langsung dengan <code>order.status = ...</code></li>
+                    <li><strong>Polymorphism:</strong> Transisi bergantung pada <code>fulfillment</code>. <strong>DELIVERY</strong> → harus berakhir di <code>DELIVERED</code>. <strong>PICKUP</strong> → harus berakhir di <code>READY</code>. Satu method, perilaku validasi berbeda tergantung objek.</li>
+                </ul>
+
+                <h3>Contoh Kode</h3>
+                <div class="code-block">
+<pre><span class="comment"># chatbot/models.py - ENCAPSULATION + POLYMORPHISM</span>
+<span class="keyword">def</span> <span class="function">_can_transition</span>(self, new_status):
+    <span class="string">"""Protected: validasi transisi"""</span>
+    allowed = self.ALLOWED_TRANSITIONS.get(self.status, ())
+    <span class="keyword">if</span> new_status <span class="keyword">not in</span> allowed: <span class="keyword">return False</span>
+    <span class="keyword">if</span> new_status == self.STATUS_READY <span class="keyword">and not</span> self.is_pickup: <span class="keyword">return False</span>
+    <span class="keyword">if</span> new_status == self.STATUS_DELIVERED <span class="keyword">and</span> self.is_pickup: <span class="keyword">return False</span>
+    <span class="keyword">return True</span>
+
+<span class="keyword">def</span> <span class="function">transition_to</span>(self, new_status, actor=None, note=<span class="string">''</span>):
+    <span class="string">"""SATU-SATUNYA cara resmi mengubah status pesanan"""</span>
+    <span class="keyword">if not</span> self._can_transition(new_status):
+        <span class="keyword">return False</span>
+    old_status = self.status
+    self.status = new_status
+    self.save(update_fields=[<span class="string">'status'</span>, <span class="string">'updated_at'</span>])
+    ServiceOrderStatusLog.objects.create(order=self, status=new_status, note=note, changed_by=actor)
+    <span class="keyword">return True</span></pre>
+                </div>
+            </section>
+
+            <!-- PRIORITAS 3 -->
+            <section id="prioritas-3">
+                <h2>3️⃣ Payment Processor - Inheritance + Polymorphism + Abstraction</h2>
+                <p style="color: var(--text-secondary);">Paling eksplisit. Hampir persis seperti contoh perbankan di materi perkuliahan.</p>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h4>📍 Lokasi</h4>
+                        <ul>
+                            <li><code>reservations/payment_processors/base.py</code></li>
+                            <li><code>reservations/payment_processors/manual_transfer.py</code></li>
+                            <li><code>reservations/payment_processors/gateway.py</code></li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>🎯 Pilar Utama</h4>
+                        <div style="margin-top: 0.75rem;">
+                            <span class="badge badge-inher">INHERITANCE</span>
+                            <span class="badge badge-poly">POLYMORPHISM</span>
+                            <span class="badge badge-abs">ABSTRACTION</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Penjelasan</h3>
+                <ul style="color: var(--text-secondary); margin-left: 1.5rem;">
+                    <li><strong>Abstraction:</strong> <code>BasePaymentProcessor(ABC)</code> mendefinisikan kontrak <code>charge()</code>, <code>refund()</code>, <code>get_method_name()</code> tanpa implementasi detail. Caller hanya tahu interface.</li>
+                    <li><strong>Inheritance:</strong> <code>ManualTransferProcessor</code> dan <code>GatewayPaymentProcessor</code> <strong>mewarisi</strong> <code>BasePaymentProcessor</code>. Relasi <strong>"adalah jenis dari"</strong> (<em>is-a</em>).</li>
+                    <li><strong>Polymorphism:</strong> <strong>Satu interface, dua implementasi berbeda</strong>. Bisa dipanggil secara polimorfis dengan <code>processor.charge(booking, amount)</code> tanpa peduli tipe konkret objeknya.</li>
+                </ul>
+
+                <h3>Contoh Kode</h3>
+                <div class="code-block">
+<pre><span class="comment"># reservations/payment_processors/base.py</span>
+<span class="keyword">from</span> abc <span class="keyword">import</span> ABC, abstractmethod
+
+<span class="keyword">class</span> <span class="class-name">BasePaymentProcessor</span>(ABC):
+    <span class="string">"""Kontrak untuk semua pemroses pembayaran"""</span>
+    <span class="decorator">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="function">charge</span>(self, booking, amount): <span class="keyword">pass</span>
+    
+    <span class="decorator">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="function">refund</span>(self, payment, amount): <span class="keyword">pass</span>
+    
+    <span class="decorator">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="function">get_method_name</span>(self): <span class="keyword">pass</span>
+
+<span class="comment"># reservations/payment_processors/manual_transfer.py</span>
+<span class="keyword">class</span> <span class="class-name">ManualTransferProcessor</span>(BasePaymentProcessor):
+    <span class="keyword">def</span> <span class="function">charge</span>(self, booking, amount):
+        <span class="keyword">return</span> {<span class="string">"method"</span>: <span class="string">"MANUAL_TRANSFER"</span>, <span class="string">"status"</span>: <span class="string">"PENDING_VERIFICATION"</span>}
+    
+    <span class="keyword">def</span> <span class="function">refund</span>(self, payment, amount):
+        <span class="keyword">from</span> ..services <span class="keyword">import</span> request_refund
+        request_refund(payment, reason=<span class="string">"Refund via manual transfer"</span>)
+        <span class="keyword">return</span> {<span class="string">"method"</span>: <span class="string">"MANUAL_TRANSFER"</span>, <span class="string">"status"</span>: <span class="string">"REFUND_PENDING"</span>}
+    
+    <span class="keyword">def</span> <span class="function">get_method_name</span>(self): <span class="keyword">return</span> <span class="string">"Transfer Bank Manual"</span>
+
+<span class="comment"># reservations/payment_processors/gateway.py</span>
+<span class="keyword">class</span> <span class="class-name">GatewayPaymentProcessor</span>(BasePaymentProcessor):
+    <span class="keyword">def</span> <span class="function">charge</span>(self, booking, amount):
+        <span class="keyword">return</span> {<span class="string">"method"</span>: <span class="string">"GATEWAY"</span>, <span class="string">"status"</span>: <span class="string">"AWAITING_PAYMENT"</span>}
+    
+    <span class="keyword">def</span> <span class="function">refund</span>(self, payment, amount):
+        <span class="keyword">return</span> {<span class="string">"method"</span>: <span class="string">"GATEWAY"</span>, <span class="string">"status"</span>: <span class="string">"REFUND_INITIATED"</span>}
+    
+    <span class="keyword">def</span> <span class="function">get_method_name</span>(self): <span class="keyword">return</span> <span class="string">"Payment Gateway"</span></pre>
+                </div>
+            </section>
+
+            <!-- RESERVATIONS LAINNYA -->
+            <section id="reservations">
+                <h2>📅 reservations/ - Booking, Voucher</h2>
+                
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fitur</th>
+                                <th>Pilar Utama</th>
+                                <th>Lokasi</th>
+                                <th>Penjelasan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Booking</strong></td>
+                                <td><span class="badge badge-encap">Encapsulation</span> <span class="badge badge-abs">Abstraction</span></td>
+                                <td><code>reservations/models.py:314-435</code></td>
+                                <td><code>hitung_total_biaya()</code> enkapsulasi kalkulasi. <code>available_rooms()</code> abstraksi query kompleks (bentrok booking + RoomAvailability).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>PromoVoucher</strong></td>
+                                <td><span class="badge badge-encap">Encapsulation</span></td>
+                                <td><code>reservations/models.py:149-210</code></td>
+                                <td>Kuota dilindungi <code>_consume_quota()</code> & <code>_return_quota()</code> (protected). Dipanggil via <code>Booking.konsumsi_voucher()</code> & <code>_kembalikan_voucher()</code>.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- CHATBOT -->
+            <section id="chatbot">
+                <h2>🍽️ chatbot/ - Room Service</h2>
+                
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fitur</th>
+                                <th>Pilar Utama</th>
+                                <th>Lokasi</th>
+                                <th>Penjelasan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>RoomServiceMenuItem</strong></td>
+                                <td><span class="badge badge-poly">Polymorphism</span> <span class="badge badge-encap">Encapsulation</span></td>
+                                <td><code>chatbot/models.py:198-204</code></td>
+                                <td><strong>Method overriding:</strong> <code>clean()</code> override <code>Model.clean()</code> Django. Validasi <code>category</code> &lt;-&gt; <code>subcategory</code> dienkapsulasi.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>AI Concierge</strong></td>
+                                <td><span class="badge badge-abs">Abstraction</span></td>
+                                <td><code>chatbot/services.py</code></td>
+                                <td>Logika Gemini, konteks menu, throttling disembunyiin di service. View API cukup manggil service.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- LAINNYA -->
+            <section id="lainnya">
+                <h2>🔐 accounts/, rooms/, core/</h2>
+                
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fitur</th>
+                                <th>Pilar Utama</th>
+                                <th>Lokasi</th>
+                                <th>Penjelasan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>GuestProfile</strong></td>
+                                <td><span class="badge badge-encap">Encapsulation</span></td>
+                                <td><code>accounts/models.py:71-136</code></td>
+                                <td>Nilai turunan <code>display_name</code>, <code>initials</code>, <code>completeness</code> pakai <code>@property</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Room / RoomType</strong></td>
+                                <td><span class="badge badge-poly">Polymorphism</span> (kecil)</td>
+                                <td><code>rooms/models.py</code></td>
+                                <td>Mewarisi <code>models.Model</code>. Banyak yang override <code>__str__()</code> dengan bentuk berbeda.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>BaseTransaction / TimeStampedModel</strong></td>
+                                <td><span class="badge badge-inher">Inheritance</span> <span class="badge badge-abs">Abstraction</span></td>
+                                <td><code>core/models.py:5-12</code>, <code>reservations/models.py:98-108</code></td>
+                                <td><code>TimeStampedModel</code> (abstract) → <code>BaseTransaction</code> mewarisinya. <code>Booking/Payment/Review/PromoVoucher/PaymentEvent</code> semua mewarisi. Relasi <strong>is-a</strong>.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Notifiers (Demo)</strong></td>
+                                <td><span class="badge badge-poly">Polymorphism (Duck Typing)</span> <span class="badge badge-abs">Abstraction</span></td>
+                                <td><code>core/notifiers/channels.py</code></td>
+                                <td><code>EmailNotifier</code>, <code>SMSNotifier</code>, <code>InAppNotifier</code> punya <code>send()</code> sama. <code>notify_all()</code> nggak cek tipe, cukup butuh method <code>send()</code>.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- RINGKASAN -->
+            <section id="ringkasan">
+                <h2>📋 Ringkasan</h2>
+                
+                <div class="priority-box">
+                    <h3>Urutan Penyampaian Saat Presentasi</h3>
+                    <ol style="color: var(--text-secondary); margin-left: 1.5rem; font-size: 1.05rem;">
+                        <li style="margin-bottom: 0.75rem;"><strong>1. Payment + services.py</strong> → Tunjukin <em>single gate</em>, <code>__is_verifiable()</code> (private), dan service layer sebagai abstraksi</li>
+                        <li style="margin-bottom: 0.75rem;"><strong>2. ServiceOrder.transition_to()</strong> → Tunjukin <code>_can_transition()</code> (protected) + validasi beda per <code>fulfillment</code></li>
+                        <li style="margin-bottom: 0.75rem;"><strong>3. BasePaymentProcessor</strong> → Tunjukin <em>abstract class</em>, inheritance, dan <strong>satu interface - banyak implementasi</strong> (polymorphism)</li>
+                    </ol>
+                </div>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>✅ Yang Kuat</h4>
+                        <ul>
+                            <li>Payment flow terpusat & aman</li>
+                            <li>Kontrol transisi status order ketat</li>
+                            <li>Demo inheritance+polymorphism eksplisit</li>
+                            <li>Service layer sebagai abstraksi bagus</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>💡 Tips Penyampaian</h4>
+                        <ul>
+                            <li>Sebut <strong>nama class + method + file</strong></li>
+                            <li>Fokus <strong>pilar dominan</strong>, bukan "semua pilar"</li>
+                            <li>Bedain <strong>_protected</strong> vs <strong>__private</strong></li>
+                            <li>Tunjukin <strong>perbedaan</strong> sebelum-sesudah (langsung vs lewat method)</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>© 2026 Prioritas Penerapan 4 Pilar OOP - Hotel Management System Nocturn Haven</p>
+        <p style="margin-top: 0.5rem;">Berdasarkan analisis kode sumber aktual</p>
+    </footer>
+
+    <script>
+        document.querySelectorAll('.sidebar nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.sidebar nav a');
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

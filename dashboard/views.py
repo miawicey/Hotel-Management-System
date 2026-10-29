@@ -5,7 +5,11 @@ from django.views.generic import TemplateView
 
 from accounts.models import GuestProfile
 from chatbot.models import ServiceOrder
+<<<<<<< HEAD
 from reservations.models import Booking, Payment
+=======
+from reservations.models import Booking, Payment, PromoVoucher
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
 from rooms.models import Room, RoomType
 
 
@@ -66,6 +70,27 @@ class DashboardView(TemplateView):
 		return context
 
 
+<<<<<<< HEAD
+=======
+class FacilitiesView(TemplateView):
+	template_name = 'dashboard/facilities.html'
+
+
+class OffersView(TemplateView):
+	template_name = 'dashboard/offers.html'
+
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		now = timezone.now()
+		context['vouchers'] = (
+			PromoVoucher.objects
+			.filter(kuota_penggunaan__gt=0, tanggal_kedaluwarsa__gte=now)
+			.order_by('tanggal_kedaluwarsa', 'kode_voucher')
+		)
+		return context
+
+
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
 class GuestDashboardView(LoginRequiredMixin, TemplateView):
 	"""Personal overview for a signed-in guest.
 

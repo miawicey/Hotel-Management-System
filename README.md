@@ -66,6 +66,11 @@ secrets; `.env` is gitignored and `.env.example` documents the required keys.
 ## Main routes
 
 - `/`: public home page.
+<<<<<<< HEAD
+=======
+- `/facilities/`: hotel facilities page.
+- `/offers/`: offers, stay packages and active promo vouchers.
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
 - `/rooms/`: room catalog and date availability search.
 - `/rooms/ulasan/`: review listing.
 - `/reservations/buat/`: create a booking.
@@ -104,8 +109,13 @@ Public pages share one shell and one stylesheet, so the site, the guest portal
 and the admin look like one hotel:
 
 - `templates/public/base.html`: header (Home · Room & Suites · Facilities ·
+<<<<<<< HEAD
   Offers · Ulasan Tamu · Portal Tamu · About Us), guest profile chip, message
   region, footer, and the deferred script tags. `templates/public/_stars.html`
+=======
+  Offers · Ulasan Tamu · About Us), guest profile chip that links to the guest
+  portal, message region, footer, and the deferred script tags. `templates/public/_stars.html`
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
   and `_review_card.html` are shared includes.
 - `static/css/public-site.css`: design tokens (burgundy `#710000`, gold
   `#b68b35`, warm canvas `#f7f4f0`, Playfair Display + DM Sans), buttons,

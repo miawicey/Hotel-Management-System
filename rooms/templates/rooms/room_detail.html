@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 {% load static %}
 <!DOCTYPE html>
 <html lang="id">
@@ -107,12 +108,83 @@
             </div>
             <div class="calendar" data-reveal>
                 {% for day in calendar %}
+=======
+{% extends 'public/base.html' %}
+{% block title %}{{ room.type_name }} · Kamar {{ room.number }}{% endblock %}
+{% block meta_description %}{{ room.type_name }} di Nocturn Haven — {{ room.capacity }}, {{ room.view }}, tarif langsung transparan.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="pub-shell">
+        <p class="pub-eyebrow">{{ room.label }}</p>
+        <h1>{{ room.type_name }}</h1>
+        <p>{{ room.description }}</p>
+    </div>
+</section>
+
+<div class="page-body">
+    <div class="pub-shell">
+        <div class="detail-layout">
+            <figure class="detail-media" data-reveal>
+                <img src="{{ room.image }}" alt="{{ room.type_name }} nomor {{ room.number }}">
+                <figcaption>Kamar {{ room.number }} · {{ room.capacity }}</figcaption>
+            </figure>
+
+            <div class="detail-copy" data-reveal>
+                <div class="chip-row">
+                    <span class="chip chip--gold">{{ room.badge }}</span>
+                    <span class="chip">{{ room.capacity }}</span>
+                    <span class="chip">{{ room.view }}</span>
+                </div>
+                {% if rating_count %}
+                <p class="rating-summary">
+                    {% include 'public/_stars.html' with value=rating_round %}
+                    <span><strong>{{ rating_average|floatformat:1 }}</strong> <small>dari {{ rating_count }} ulasan tamu</small></span>
+                </p>
+                {% endif %}
+
+                <h2>Detail kamar</h2>
+                <ul class="detail-list">
+                    <li><i>✦</i> Tempat tidur nyaman dengan linen berkualitas hotel.</li>
+                    <li><i>✦</i> Layanan kamar 24 jam dan kebersihan harian.</li>
+                    <li><i>✦</i> Wi-Fi berkecepatan tinggi untuk kerja maupun hiburan.</li>
+                    <li><i>✦</i> Sarapan untuk {{ room.capacity }} di restoran utama.</li>
+                </ul>
+
+                <div class="detail-cta">
+                    <span>
+                        <small>Mulai dari</small>
+                        <strong class="num">Rp {{ room.price }} <em>/ malam</em></strong>
+                    </span>
+                    <span class="banner-actions">
+                        <a class="btn btn--primary" href="{% url 'booking_create' %}?room={{ room.id }}">Pesan Kamar Ini <span class="btn__icon" aria-hidden="true">→</span></a>
+                        <a class="btn btn--ghost" href="{% url 'room_list' %}">Kembali ke daftar</a>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <section class="pub-section pub-section--tight" aria-labelledby="calendar-title">
+            <div class="section-head" data-reveal>
+                <div>
+                    <p class="pub-eyebrow">Rencanakan tanggal Anda</p>
+                    <h2 id="calendar-title">Ketersediaan 14 hari ke depan</h2>
+                    <p class="section-copy">Status di bawah mengikuti jadwal nyata housekeeping dan reservasi yang sudah terkonfirmasi.</p>
+                </div>
+                <a class="text-link" href="{% url 'booking_create' %}?room={{ room.id }}">Pesan kamar ini <span aria-hidden="true">↗</span></a>
+            </div>
+            <div class="calendar" data-reveal>
+                {% for day in calendar %}
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
                 <div class="calendar-day {% if day.available %}is-free{% else %}is-busy{% endif %}">
                     <b>{{ day.date|date:"D" }}</b>
                     <span class="num">{{ day.date|date:"d M" }}</span>
                     <small>{% if day.available %}Tersedia{% else %}{{ day.note|default:"Terisi" }}{% endif %}</small>
                 </div>
+<<<<<<< HEAD
 >>>>>>> 9eadd67a09d1cee43c9a4a2d4c4373584991b8f7
+=======
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
                 {% endfor %}
             </div>
             <div class="calendar-legend">

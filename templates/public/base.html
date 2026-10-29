@@ -34,10 +34,16 @@
             <nav class="main-nav" aria-label="Navigasi utama">
                 <a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a>
                 <a href="{% url 'room_list' %}"{% if request.resolver_match.url_name == 'room_list' or request.resolver_match.url_name == 'room_detail' or request.resolver_match.url_name == 'booking_create' %} aria-current="page"{% endif %}>Room &amp; Suites</a>
+<<<<<<< HEAD
                 <a href="{% url 'home' %}#facilities">Facilities</a>
                 <a href="{% url 'home' %}#offers">Offers</a>
                 <a href="{% url 'review_list' %}"{% if request.resolver_match.url_name == 'review_list' %} aria-current="page"{% endif %}>Ulasan Tamu</a>
                 <a href="{% url 'guest_dashboard' %}">Portal Tamu</a>
+=======
+                <a href="{% url 'facilities' %}"{% if request.resolver_match.url_name == 'facilities' %} aria-current="page"{% endif %}>Facilities</a>
+                <a href="{% url 'offers' %}"{% if request.resolver_match.url_name == 'offers' %} aria-current="page"{% endif %}>Offers</a>
+                <a href="{% url 'review_list' %}"{% if request.resolver_match.url_name == 'review_list' %} aria-current="page"{% endif %}>Ulasan Tamu</a>
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
                 <a href="{% url 'home' %}#about">About Us</a>
             </nav>
 
@@ -67,11 +73,18 @@
     <nav class="mobile-nav" id="mobile-nav" data-mobile-nav aria-label="Navigasi seluler">
         <a href="{% url 'home' %}">Home <span>01</span></a>
         <a href="{% url 'room_list' %}">Room &amp; Suites <span>02</span></a>
+<<<<<<< HEAD
         <a href="{% url 'home' %}#facilities">Facilities <span>03</span></a>
         <a href="{% url 'home' %}#offers">Offers <span>04</span></a>
         <a href="{% url 'review_list' %}">Ulasan Tamu <span>05</span></a>
         <a href="{% url 'guest_dashboard' %}">Portal Tamu <span>06</span></a>
         <a href="{% url 'home' %}#about">About Us <span>07</span></a>
+=======
+        <a href="{% url 'facilities' %}">Facilities <span>03</span></a>
+        <a href="{% url 'offers' %}">Offers <span>04</span></a>
+        <a href="{% url 'review_list' %}">Ulasan Tamu <span>05</span></a>
+        <a href="{% url 'home' %}#about">About Us <span>06</span></a>
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
         <div class="mobile-nav-actions">
             {% if user.is_authenticated %}
             <a class="btn btn--gold" href="{% url 'booking_create' %}">Pesan Sekarang</a>

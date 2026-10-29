@@ -22,7 +22,7 @@ from django.http import JsonResponse
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from dashboard.views import DashboardView
+from dashboard.views import DashboardView, FacilitiesView, OffersView
 from rooms.views import room_detail, room_list, review_list
 
 
@@ -33,6 +33,8 @@ def health_check(request):
 
 urlpatterns = [
     path('', DashboardView.as_view(), name='home'),
+    path('facilities/', FacilitiesView.as_view(), name='facilities'),
+    path('offers/', OffersView.as_view(), name='offers'),
     path('health/', health_check, name='health'),
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),

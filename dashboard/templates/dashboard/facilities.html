@@ -1,0 +1,153 @@
+{% extends 'public/base.html' %}
+{% block title %}Facilities{% endblock %}
+{% block meta_description %}Jelajahi fasilitas Nocturn Haven — kolam renang rooftop, spa, restoran, pusat kebugaran, concierge, dan ruang pertemuan dengan jam operasional yang jelas.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="pub-shell">
+        <p class="pub-eyebrow">Fasilitas hotel</p>
+        <h1>Fasilitas untuk Hari yang Lebih Tenang</h1>
+        <p>Dari kolam renang di ketinggian hingga sudut baca yang sunyi, setiap fasilitas dirancang agar waktu Anda di Nocturn Haven terasa utuh.</p>
+        <div class="page-hero-actions">
+            <a class="btn btn--primary" href="{% url 'room_list' %}">Jelajahi Kamar <span class="btn__icon" aria-hidden="true">→</span></a>
+            <a class="btn btn--ghost" href="{% url 'offers' %}">Lihat Penawaran</a>
+        </div>
+    </div>
+</section>
+
+<div class="page-body">
+    <div class="pub-shell">
+        <div class="section-head" data-reveal>
+            <div>
+                <p class="pub-eyebrow">02 / Facilities</p>
+                <h2>Kenyamanan Sepanjang Hari</h2>
+                <p class="section-copy">Tersedia untuk tamu yang menginap, dengan jam layanan yang mudah disesuaikan dengan rencana Anda.</p>
+            </div>
+            <span class="section-note">Kenyamanan menenangkan bagi raga dan pikiran</span>
+        </div>
+
+        <div class="facility-grid" data-reveal-group>
+            <article class="facility-card bezel" data-reveal>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="facility-card__media"><img src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=900&q=85" alt="Kolam renang rooftop dengan pemandangan kota" loading="lazy"></div>
+                        <div class="facility-card__body">
+                            <p class="facility-label">Lantai 18 rooftop</p>
+                            <h3>Kolam Renang Infinity Horizon</h3>
+                            <p>Ruang terbuka dengan pemandangan kota dan layanan santai sepanjang hari.</p>
+                            <span class="facility-hours">Buka 06:00 — 22:00</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="facility-card bezel" data-reveal>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="facility-card__media"><img src="https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=85" alt="Ruang spa dengan pencahayaan hangat" loading="lazy"></div>
+                        <div class="facility-card__body">
+                            <p class="facility-label">Sanctuary kebugaran</p>
+                            <h3>Serenity Spa &amp; Sauna</h3>
+                            <p>Perawatan tubuh, sauna, dan ritual relaksasi dalam suasana yang hening.</p>
+                            <span class="facility-hours">Reservasi terlebih dahulu</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="facility-card bezel" data-reveal>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="facility-card__media"><img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=900&q=85" alt="Meja makan restoran hotel" loading="lazy"></div>
+                        <div class="facility-card__body">
+                            <p class="facility-label">Restoran gastronomi</p>
+                            <h3>The Grand Dining &amp; Lounge</h3>
+                            <p>Sajian lokal dan global yang disiapkan dari bahan pilihan terbaik.</p>
+                            <span class="facility-hours">Breakfast — Lunch — Dinner</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="facility-card bezel" data-reveal>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="facility-card__media"><img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=85" alt="Pusat kebugaran dengan peralatan modern" loading="lazy"></div>
+                        <div class="facility-card__body">
+                            <p class="facility-label">Studio fitness privat</p>
+                            <h3>Pusat Kebugaran 24 Jam</h3>
+                            <p>Peralatan pilihan dan ruang latihan dengan pemandangan taman.</p>
+                            <span class="facility-hours">Buka 24 jam</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="facility-card bezel" data-reveal>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="facility-card__media"><img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=900&q=85" alt="Lobi hotel dengan meja concierge" loading="lazy"></div>
+                        <div class="facility-card__body">
+                            <p class="facility-label">Layanan pribadi</p>
+                            <h3>Concierge &amp; Airport Transfer</h3>
+                            <p>Pengaturan transportasi, tiket, dan permintaan khusus kapan pun dibutuhkan.</p>
+                            <span class="facility-hours">Layanan 24 jam</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="facility-card bezel" data-reveal>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="facility-card__media"><img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85" alt="Ruang kerja dan pertemuan yang terang" loading="lazy"></div>
+                        <div class="facility-card__body">
+                            <p class="facility-label">Ruang kerja &amp; pertemuan</p>
+                            <h3>Business Lounge</h3>
+                            <p>Meja kerja, ruang rapat privat, dan koneksi cepat untuk perjalanan bisnis.</p>
+                            <span class="facility-hours">Buka 07:00 — 21:00</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="facility-card bezel" data-reveal>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="facility-card__media"><img src="https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=900&q=85" alt="Area parkir hotel yang tertata" loading="lazy"></div>
+                        <div class="facility-card__body">
+                            <p class="facility-label">Akses kendaraan</p>
+                            <h3>Parkir Aman &amp; Valet</h3>
+                            <p>Parkir tertutup dengan pengawasan dan layanan valet untuk kenyamanan Anda.</p>
+                            <span class="facility-hours">Layanan 24 jam</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="facility-card bezel" data-reveal>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="facility-card__media"><img src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=900&q=85" alt="Sudut baca dan ruang santai hotel" loading="lazy"></div>
+                        <div class="facility-card__body">
+                            <p class="facility-label">Ruang tenang</p>
+                            <h3>Garden Courtyard &amp; Library</h3>
+                            <p>Taman dalam dan perpustakaan kecil untuk membaca, bekerja, atau beristirahat.</p>
+                            <span class="facility-hours">Buka 06:00 — 23:00</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </div>
+</div>
+
+<section class="contact-band">
+    <div class="pub-shell">
+        <div class="contact-card" data-reveal>
+            <div>
+                <p class="pub-eyebrow">Permintaan khusus</p>
+                <h2>Butuh fasilitas untuk acara atau kebutuhan khusus?</h2>
+                <p>Tim concierge kami siap membantu mengatur ruang, jadwal, dan layanan tambahan sesuai rencana Anda.</p>
+            </div>
+            <div class="banner-actions">
+                <a class="btn btn--gold" href="mailto:hello@nocturnhaven.test">Hubungi Concierge</a>
+                <a class="btn btn--pale" href="{% url 'offers' %}">Lihat Penawaran <span class="btn__icon" aria-hidden="true">↗</span></a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

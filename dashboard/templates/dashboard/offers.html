@@ -1,0 +1,175 @@
+{% extends 'public/base.html' %}
+{% load hotel_ui %}
+{% block title %}Offers{% endblock %}
+{% block meta_description %}Penawaran dan paket menginap Nocturn Haven — malam gratis, sarapan, late checkout, dan voucher aktif untuk reservasi langsung.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="pub-shell">
+        <p class="pub-eyebrow">Penawaran langsung</p>
+        <h1>Penawaran &amp; Paket Menginap</h1>
+        <p>Nikmati keuntungan khusus saat memesan langsung melalui situs kami — tanpa biaya perantara dan tanpa kejutan di akhir.</p>
+        <div class="page-hero-actions">
+            <a class="btn btn--primary" href="{% url 'booking_create' %}">Pesan Sekarang <span class="btn__icon" aria-hidden="true">→</span></a>
+            <a class="btn btn--ghost" href="{% url 'room_list' %}">Jelajahi Kamar</a>
+        </div>
+    </div>
+</section>
+
+<div class="page-body">
+    <div class="pub-shell">
+        <div class="section-head" data-reveal>
+            <div>
+                <p class="pub-eyebrow">Paket pilihan</p>
+                <h2>Menginap Lebih Lama, Menikmati Lebih Banyak</h2>
+                <p class="section-copy">Paket dapat disesuaikan dengan tanggal perjalanan Anda. Hubungi concierge jika ingin merancang paket sendiri.</p>
+            </div>
+            <a class="text-link" href="{% url 'room_list' %}">Lihat Semua Kamar <span aria-hidden="true">↗</span></a>
+        </div>
+
+        <div class="room-grid" data-reveal-group>
+            <article class="room-card bezel" data-reveal data-tilt>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="room-card__media">
+                            <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1000&q=85" alt="Suite dengan ruang duduk dan pemandangan kota" loading="lazy">
+                            <span class="room-card__tag">Hemat 25%</span>
+                            <span class="room-card__price">4 malam <small>· bayar 3</small></span>
+                        </div>
+                        <div class="room-card__body">
+                            <div class="room-card__meta">
+                                <span class="chip">Suite</span>
+                                <span class="chip">2 tamu</span>
+                            </div>
+                            <h3>Malam Keempat Gratis</h3>
+                            <p class="room-card__desc">Perpanjang waktu istirahat Anda dengan satu malam tambahan tanpa biaya pada setiap pemesanan empat malam.</p>
+                            <ul class="room-card__list">
+                                <li>Menginap 4 malam, bayar 3 malam</li>
+                                <li>Sarapan untuk dua orang</li>
+                                <li>Late checkout hingga 14:00</li>
+                            </ul>
+                            <div class="room-card__actions">
+                                <a class="btn btn--primary" href="{% url 'booking_create' %}">Pesan Paket</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="room-card bezel" data-reveal data-tilt>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="room-card__media">
+                            <img src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1000&q=85" alt="Kolam renang rooftop dengan pemandangan kota" loading="lazy">
+                            <span class="room-card__tag">Akhir pekan</span>
+                            <span class="room-card__price">2 malam <small>· paket</small></span>
+                        </div>
+                        <div class="room-card__body">
+                            <div class="room-card__meta">
+                                <span class="chip">Deluxe</span>
+                                <span class="chip">2 tamu</span>
+                            </div>
+                            <h3>Weekend Serenity</h3>
+                            <p class="room-card__desc">Akhir pekan yang lebih lambat dengan sarapan santai dan akses ke area relaksasi rooftop.</p>
+                            <ul class="room-card__list">
+                                <li>Sarapan untuk dua orang</li>
+                                <li>Akses kolam renang &amp; sauna</li>
+                                <li>Late checkout hingga 13:00</li>
+                            </ul>
+                            <div class="room-card__actions">
+                                <a class="btn btn--primary" href="{% url 'booking_create' %}">Pesan Paket</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="room-card bezel" data-reveal data-tilt>
+                <div class="tilt-inner">
+                    <div class="bezel-core">
+                        <div class="room-card__media">
+                            <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1000&q=85" alt="Grand suite dengan teras dan lounge privat" loading="lazy">
+                            <span class="room-card__tag">Suite escape</span>
+                            <span class="room-card__price">3 malam <small>· paket</small></span>
+                        </div>
+                        <div class="room-card__body">
+                            <div class="room-card__meta">
+                                <span class="chip">Grand Suite</span>
+                                <span class="chip">4 tamu</span>
+                            </div>
+                            <h3>Suite Escape</h3>
+                            <p class="room-card__desc">Ruang lebih luas, layanan personal, dan transportasi bandara untuk perjalanan yang benar-benar tanpa repot.</p>
+                            <ul class="room-card__list">
+                                <li>Upgrade ke Grand Suite</li>
+                                <li>Antar-jemput bandara</li>
+                                <li>Kredit spa Rp 500.000</li>
+                            </ul>
+                            <div class="room-card__actions">
+                                <a class="btn btn--primary" href="{% url 'booking_create' %}">Pesan Paket</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </div>
+</div>
+
+<section class="pub-section pub-section--tight" id="voucher">
+    <div class="pub-shell">
+        <div class="section-head" data-reveal>
+            <div>
+                <p class="pub-eyebrow">Voucher aktif</p>
+                <h2>Gunakan Kode Saat Memesan</h2>
+                <p class="section-copy">Masukkan kode voucher di formulir reservasi untuk mendapatkan potongan harga langsung.</p>
+            </div>
+            <span class="section-note">Berlaku selama kuota dan masa berlaku tersedia</span>
+        </div>
+
+        {% if vouchers %}
+        <div class="room-grid" data-reveal-group>
+            {% for voucher in vouchers %}
+            <article class="card card-pad" data-reveal>
+                <p class="facility-label">Voucher promo</p>
+                <h3 style="margin:6px 0 10px;font-size:26px;letter-spacing:0.06em;">{{ voucher.kode_voucher }}</h3>
+                <p style="margin:0 0 16px;color:var(--nh-ink-soft);font-size:13px;">
+                    {% if voucher.persen_diskon %}Hemat {{ voucher.persen_diskon|floatformat:0 }}% dari total menginap.{% endif %}
+                    {% if voucher.potongan_nominal %}Potongan langsung Rp {{ voucher.potongan_nominal|rupiah }}.{% endif %}
+                </p>
+                <div class="chip-row">
+                    {% if voucher.minimal_transaksi %}
+                    <span class="chip">Min. Rp {{ voucher.minimal_transaksi|rupiah }}</span>
+                    {% else %}
+                    <span class="chip">Tanpa minimum transaksi</span>
+                    {% endif %}
+                    <span class="chip">Sisa {{ voucher.kuota_penggunaan }} kuota</span>
+                    <span class="chip">Hingga {{ voucher.tanggal_kedaluwarsa|date:'d M Y' }}</span>
+                </div>
+                <div class="room-card__actions">
+                    <a class="btn btn--primary" href="{% url 'booking_create' %}">Pesan dengan Voucher</a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info" role="status">Belum ada voucher aktif saat ini. Pantau halaman ini untuk penawaran berikutnya.</div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="contact-band">
+    <div class="pub-shell">
+        <div class="contact-card" data-reveal>
+            <div>
+                <p class="pub-eyebrow">Bantuan reservasi pribadi</p>
+                <h2>Memiliki permintaan khusus atau kebutuhan transportasi VIP?</h2>
+                <p>Tim kami siap membantu merancang pengalaman menginap yang tepat untuk Anda.</p>
+            </div>
+            <div class="banner-actions">
+                <a class="btn btn--gold" href="mailto:hello@nocturnhaven.test">Hubungi Pramutamu</a>
+                <a class="btn btn--pale" href="{% url 'room_list' %}">Jelajahi Kamar <span class="btn__icon" aria-hidden="true">↗</span></a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -13,9 +13,16 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import User
 from django.db import models, transaction
 from django.utils import timezone
+<<<<<<< HEAD
 
 from rooms.models import Room, RoomAvailability
 
+=======
+
+from rooms.models import Room, RoomAvailability
+from core.models import TimeStampedModel
+
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
 
 MONEY_PRECISION = Decimal('0.01')
 TAX_RATE = Decimal('0.11')
@@ -26,17 +33,31 @@ def _money(value) -> Decimal:
     return Decimal(str(value)).quantize(MONEY_PRECISION, rounding=ROUND_HALF_UP)
 
 
+<<<<<<< HEAD
 class BaseTransaction(models.Model):
     """Common timestamps shared by the transaction models."""
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+=======
+class BaseTransaction(TimeStampedModel):
+    """Common timestamps shared by the transaction models.
+    
+    Inherits from core.models.TimeStampedModel (Abstract Base Class).
+    Demonstrates inheritance: BaseTransaction is-a TimeStampedModel.
+    """
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
 
     class Meta:
         abstract = True
 
 
 class PromoVoucher(BaseTransaction):
+    """Voucher promo dengan kuota terbatas.
+    
+    Encapsulation: kuota penggunaan dilindungi dengan method protected
+    agar hanya bisa dikonsumsi melalui jalur yang terkontrol.
+    """
     kode_voucher = models.CharField(max_length=50, unique=True)
     persen_diskon = models.FloatField(default=0.0)
     potongan_nominal = models.FloatField(default=0.0)
@@ -45,11 +66,32 @@ class PromoVoucher(BaseTransaction):
     kuota_penggunaan = models.IntegerField(default=0)
 
     def is_valid(self, total_transaksi):
+        """Public method: mengecek validitas voucher."""
         return (
             self.kuota_penggunaan > 0
             and timezone.now() <= self.tanggal_kedaluwarsa
             and Decimal(str(total_transaksi)) >= Decimal(str(self.minimal_transaksi))
         )
+
+    def _consume_quota(self, jumlah=1):
+        """Protected method: konsumsi kuota voucher.
+        Hanya boleh dipanggil dari dalam class/service terkait.
+        """
+        if jumlah <= 0:
+            raise ValidationError("Jumlah konsumsi kuota tidak valid.")
+        if self.kuota_penggunaan < jumlah:
+            raise ValidationError("Kuota voucher tidak mencukupi.")
+        self.kuota_penggunaan -= jumlah
+        self.save(update_fields=['kuota_penggunaan', 'updated_at'])
+        return True
+
+    def _return_quota(self, jumlah=1):
+        """Protected method: mengembalikan kuota voucher saat pembatalan."""
+        if jumlah <= 0:
+            raise ValidationError("Jumlah pengembalian kuota tidak valid.")
+        self.kuota_penggunaan += jumlah
+        self.save(update_fields=['kuota_penggunaan', 'updated_at'])
+        return True
 
     def __str__(self):
         return self.kode_voucher
@@ -244,7 +286,13 @@ class Booking(BaseTransaction):
 
     @transaction.atomic
     def konsumsi_voucher(self):
+<<<<<<< HEAD
         """Consume one voucher quota unit, raising if the quota ran out meanwhile."""
+=======
+        """Consume one voucher quota unit, raising if the quota ran out meanwhile.
+        Encapsulation: menggunakan method protected _consume_quota() pada PromoVoucher.
+        """
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
         if not getattr(self, '_voucher_applied', False) or not self.voucher_id:
             return False
         voucher = PromoVoucher.objects.select_for_update().get(pk=self.voucher_id)
@@ -252,19 +300,33 @@ class Booking(BaseTransaction):
             raise ValidationError(
                 'Kuota voucher sudah habis. Silakan pilih voucher lain atau lanjutkan tanpa voucher.'
             )
+<<<<<<< HEAD
         voucher.kuota_penggunaan -= 1
         voucher.save(update_fields=['kuota_penggunaan', 'updated_at'])
+=======
+        voucher._consume_quota(1)  # Menggunakan method protected untuk kontrol akses
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
         self.voucher_digunakan = True
         self.save(update_fields=['voucher_digunakan', 'updated_at'])
         return True
 
     @transaction.atomic
     def _kembalikan_voucher(self):
+<<<<<<< HEAD
         if not self.voucher_digunakan or not self.voucher_id:
             return False
         voucher = PromoVoucher.objects.select_for_update().get(pk=self.voucher_id)
         voucher.kuota_penggunaan += 1
         voucher.save(update_fields=['kuota_penggunaan', 'updated_at'])
+=======
+        """Mengembalikan kuota voucher saat booking dibatalkan.
+        Menggunakan method protected _return_quota() untuk enkapsulasi.
+        """
+        if not self.voucher_digunakan or not self.voucher_id:
+            return False
+        voucher = PromoVoucher.objects.select_for_update().get(pk=self.voucher_id)
+        voucher._return_quota(1)  # Menggunakan method protected
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
         self.voucher_digunakan = False
         self.save(update_fields=['voucher_digunakan', 'updated_at'])
         return True
@@ -362,6 +424,12 @@ class Payment(BaseTransaction):
     Gateway-driven payments can also move UNPAID -> VERIFIED or FAILED through
     the signed webhook endpoint.  Invalid transitions are rejected by the
     service layer.
+<<<<<<< HEAD
+=======
+    
+    Encapsulation: Status perubahan pembayaran dikendalikan melalui
+    reservations.services (single gate) untuk menjaga validitas transaksi.
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
     """
 
     UNPAID = 'UNPAID'
@@ -431,6 +499,26 @@ class Payment(BaseTransaction):
             and self.booking.status_pesanan == 'PENDING_PAYMENT'
         )
 
+<<<<<<< HEAD
+=======
+    # Encapsulation helpers
+    def __is_verifiable(self):
+        """Private method: hanya bisa diakses dari dalam class ini."""
+        return self.status_pembayaran in (self.PENDING_VERIFICATION, self.REJECTED)
+
+    @property
+    def is_refundable(self):
+        """Public property: cek apakah bisa direfund."""
+        return self.status_pembayaran == self.VERIFIED
+
+    @property
+    def is_in_process(self):
+        """Public property: cek apakah pembayaran sedang diproses."""
+        return self.status_pembayaran in (
+            self.PENDING_VERIFICATION, self.REFUND_PENDING
+        )
+
+>>>>>>> bec5b88e2e2dbe04431c4cb7c715a96b25f56c63
     # Thin wrappers keep legacy call sites working while routing every state
     # change through the transactional service layer.
     def verifikasi_pembayaran(self, is_approved: bool, actor=None, reason=''):
